@@ -48,14 +48,14 @@ enum DrawStatus {
 
 
 model User {
-  id         Int         @id @default(autoincrement())
-  email      String?     @unique @db.VarChar(255)
-  phone      String?     @unique @db.VarChar(32)
-  full_name  String?     @db.VarChar(255)
-  status     UserStatus  @default(ACTIVE)
-  created_at DateTime    @default(now())
-
-  Wallet     Wallet?
+  id          Int         @id @default(autoincrement())
+  email       String?     @unique @db.VarChar(255)
+  phone       String?     @unique @db.VarChar(32)
+  full_name   String?     @db.VarChar(255)
+  status      UserStatus  @default(ACTIVE)
+  created_at  DateTime    @default(now())
+  cognito_sub String?    @unique
+  Wallet      Wallet?
   @@map("users")
 }
 
