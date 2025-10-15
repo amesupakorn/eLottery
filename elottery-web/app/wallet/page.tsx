@@ -8,7 +8,7 @@ export default function WalletPage() {
   const [tab, setTab] = useState<"transactions" | "history">("transactions");
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-amber-50 to-white px-4 pb-10 pt-10">
+    <main className="min-h-screen bg-gradient-to-b from-emerald-500 to-gray-950 px-4 pb-10 pt-10">
 
       <div className="mx-auto w-full max-w-md">
         {/* Wallet Card */}

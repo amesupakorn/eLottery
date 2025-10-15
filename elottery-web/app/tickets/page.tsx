@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { Ticket, Settings, History, Search, Eye } from "lucide-react";
+import Link from "next/link";
 
 export default function TicketPage() {
   const [tab, setTab] = useState<"tickets" | "ledger">("tickets");
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-amber-50 to-white px-4 pb-10 pt-10">
+    <main className="min-h-screen bg-gradient-to-b from-amber-500 to-gray-950 px-4 pb-10 pt-10">
 
       <div className="mx-auto w-full max-w-md">
         {/* Balance Card */}
@@ -34,9 +35,15 @@ export default function TicketPage() {
         {/* Quick Actions */}
         <section className="mt-5">
           <div className="grid grid-cols-3 gap-3 text-center">
-            <Action icon={<Ticket className="h-6 w-6" />} label="ซื้อสลาก" />
-            <Action icon={<Search className="h-6 w-6" />} label="ข้อมูลผลิตภัณฑ์" />
-            <Action icon={<History className="h-6 w-6" />} label="ประวัติการถอน" />
+            <Link href="/tickets/buy" className="w-full h-full">
+              <Action  icon={<Ticket className="h-6 w-6" />} label="ซื้อสลาก" />
+            </Link>
+            <Link href="/tickets/product" className="w-full h-full">
+              <Action icon={<Search className="h-6 w-6" />} label="ข้อมูลผลิตภัณฑ์" />
+            </Link>
+            <Link href="/tickets/product" className="w-full h-full">
+              <Action icon={<History className="h-6 w-6" />} label="ประวัติการถอน" />
+            </Link>
           </div>
         </section>
 
@@ -79,11 +86,14 @@ export default function TicketPage() {
 
 function Action({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <button className="group rounded-xl border border-gray-200 bg-white p-3 shadow-sm hover:shadow transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
-      <div className="flex flex-col items-center gap-2">
-        <span className="text-amber-600 group-hover:text-amber-700">{icon}</span>
-        <span className="text-[11px] font-medium text-gray-700">{label}</span>
-      </div>
+    <button
+      className="w-full h-full flex flex-col justify-center items-center
+                 bg-white rounded-xl border border-gray-200 shadow-sm
+                 hover:shadow-md hover:bg-amber-50 transition
+                 py-4 px-2"
+    >
+      <div className="text-amber-600">{icon}</div>
+      <span className="mt-2 text-xs font-medium text-gray-700">{label}</span>
     </button>
   );
 }

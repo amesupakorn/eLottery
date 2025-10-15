@@ -19,15 +19,10 @@ function useProduct(slug: string): ProductDetail {
         { rank: "อันดับที่ 1", count: 1, amount: 10_000_000 },
         { rank: "อันดับที่ 2", count: 1, amount: 1_000_000 },
         { rank: "อันดับที่ 3", count: 5, amount: 10_000 },
-        { rank: "อันดับที่ 4", count: 10, amount: 3_000 },
-        { rank: "อันดับที่ 5", count: 15, amount: 1_000 },
-        { rank: "เลขท้าย 4 ตัว", count: 1, amount: 200 },
-        { rank: "เลขท้าย 3 ตัว", count: 1, amount: 50 },
       ],
       notes: [
         "ออกรางวัลทุกวันที่ 16 ของเดือน",
         "กำหนดงวดและหมวดอักษรเฉพาะรางวัลที่ 1 และรางวัลที่ 2",
-        "การันตีถูกรางวัลเลขท้าย 3 ตัว เมื่อฝาก 100,000 บาท",
         "โอนเงินรางวัลเข้าบัญชีอัตโนมัติในวันถัดจากวันออกรางวัล",
         "มีสิทธิ์ลุ้นรางวัล 12 เดือน ตลอดระยะเวลาการฝาก",
       ],
@@ -40,14 +35,15 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
   const data = useProduct(params.slug);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-amber-50 to-white">
+    <main className="min-h-screen bg-gradient-to-b from-amber-500 to-gray-950">
+
       {/* Top bar */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-gray-200">
+      <header className="sticky top-0 z-30 bg-amber-500/20 backdrop-blur text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center gap-2">
           <Link href="/tickets" className="rounded-full p-2 -ml-2 hover:bg-gray-100">
-            <ChevronLeft className="h-5 w-5 text-gray-700" />
+            <ChevronLeft className="h-5 w-5 text-white" />
           </Link>
-          <h1 className="text-base font-semibold text-gray-900">{data.name}</h1>
+          <h1 className="text-base font-semibold text-white">{data.name}</h1>
         </div>
       </header>
 
@@ -104,7 +100,7 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
             ย้อนกลับ
           </Link>
           <Link
-            href={`/tickets/buy?product=${params.slug}`}
+            href={`/tickets/buy`}
             className="flex-1 rounded-xl bg-amber-500 py-3 text-center text-sm font-semibold text-white hover:bg-amber-600"
           >
             ซื้อสลาก

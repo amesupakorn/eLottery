@@ -5,11 +5,11 @@ export default function DashboardPage() {
   const userName = "Supakorn";
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-amber-50 to-white">
+    <main className="min-h-screen bg-gradient-to-b from-amber-500 to-gray-950">
+
       {/*Header */}
       <header className="relative overflow-hidden">
-      <div className="absolute inset-0 bg-amber-500" />
-      <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 h-40 w-[120%] rounded-[48px] bg-amber-500" />
+      <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 h-40 w-[120%] rounded-[48px] bg-amber-500/20" />
 
       <div className="relative z-10 px-6 pt-6 pb-6">
         <div className="mx-auto w-full max-w-md">
