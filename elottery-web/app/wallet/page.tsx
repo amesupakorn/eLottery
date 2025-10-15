@@ -87,10 +87,10 @@ function Action({ icon, label }: { icon: React.ReactNode; label: string }) {
     <button
       className="w-full h-full flex flex-col justify-center items-center
                  bg-white rounded-xl border border-gray-200 shadow-sm
-                 hover:shadow-md hover:bg-amber-50 transition
+                 hover:shadow-md hover:bg-emerald-50 transition
                  py-4 px-2"
     >
-      <div className="text-amber-600">{icon}</div>
+      <div className="text-emerald-500">{icon}</div>
       <span className="mt-2 text-xs font-medium text-gray-700">{label}</span>
     </button>
   );
