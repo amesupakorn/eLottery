@@ -108,6 +108,15 @@ model TicketPurchase {
   total_price   Decimal  @db.Decimal(18, 2)
   status        TicketPurchaseStatus
 
+  user_id       Int
+  wallet_id     Int
+  draw_id       Int      // งวดที่สลากนี้ร่วมลุ้น
+
+  // (optional) index
+  @@index([draw_id, ticket_number])
+  @@index([user_id])
+  @@index([wallet_id])
+
   @@map("ticket_purchases")
 }
 
@@ -123,8 +132,7 @@ model Draw {
 
   @@map("draws")
 }
-
-model PrizeTier {
+model PrizeTier { // ระดับรางวัลของงวด
   id            Int      @id @default(autoincrement())
   draw_id       Int
   tier_name     String   @db.VarChar(64)
