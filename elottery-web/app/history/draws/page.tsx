@@ -25,10 +25,10 @@ export default function DrawHistoryPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-amber-500 to-gray-950">
+    <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900">
 
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-amber-500/20 text-white shadow p-5 text-center">
+      <header className="sticky top-0 z-20 bg-gray-500/20 text-white shadow p-5 text-center">
         <h1 className="text-lg font-bold flex items-center justify-center gap-2">
           <Trophy className="h-5 w-5" /> ประวัติการออกรางวัล
         </h1>

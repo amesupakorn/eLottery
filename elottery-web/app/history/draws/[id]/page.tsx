@@ -64,12 +64,12 @@ export default function DrawDetailPage({ params }: { params: Promise<{ id: strin
   }, [data]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-amber-500 to-gray-950">
+    <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900">
 
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-amber-500/20 backdrop-blur">
+      <header className="sticky top-0 z-20 bg-gray-500/20 backdrop-blur">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center gap-2">
-          <Link href="/history" className="rounded-full p-2 -ml-2 hover:bg-gray-100 text-white hover:text-black">
+          <Link href="/history/draws" className="rounded-full p-2 -ml-2 hover:bg-gray-100 text-white hover:text-black">
             <ChevronLeft className="h-5 w-5" />
           </Link>
           <h1 className="text-base font-semibold text-white flex items-center gap-2">
@@ -187,7 +187,7 @@ export default function DrawDetailPage({ params }: { params: Promise<{ id: strin
             {/* Back */}
             <div className="mt-6">
               <Link
-                href="/history"
+                href="/history/draws"
                 className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 <ChevronLeft className="h-4 w-4" />

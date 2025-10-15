@@ -23,7 +23,7 @@ export default function HistoryPage() {
   const [to, setTo] = useState<string>("");
 
   return (
-      <main className="min-h-screen bg-gradient-to-b from-amber-500 to-gray-950 px-4 pb-10 pt-10">
+    <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 px-4 pb-10 pt-10">
 
       <div className="mx-auto w-full max-w-md">
         {/* Tabs */}

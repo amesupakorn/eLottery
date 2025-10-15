@@ -35,10 +35,11 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
   const data = useProduct(params.slug);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-amber-500 to-gray-950">
+    // <main className="min-h-screen bg-gradient-to-b from-amber-500 to-gray-950">
+    <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900">
 
       {/* Top bar */}
-      <header className="sticky top-0 z-30 bg-amber-500/20 backdrop-blur text-white">
+      <header className="sticky top-0 z-30 bg-gray-500/20 backdrop-blur text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center gap-2">
           <Link href="/tickets" className="rounded-full p-2 -ml-2 hover:bg-gray-100 text-white hover:text-black">
             <ChevronLeft className="h-5 w-5" />

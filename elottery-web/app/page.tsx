@@ -5,22 +5,22 @@ export default function DashboardPage() {
   const userName = "Supakorn";
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-amber-500 to-gray-950">
+    <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900">
 
       {/*Header */}
       <header className="relative overflow-hidden">
-      <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 h-40 w-[120%] rounded-[48px] bg-amber-500/20" />
+      <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 h-40 w-[120%] rounded-[48px] bg-gray-500/20" />
 
       <div className="relative z-10 px-6 pt-6 pb-6">
         <div className="mx-auto w-full max-w-md">
           <div className="flex items-center gap-4">
-            <div className="bg-white/25 backdrop-blur p-3 rounded-full border border-white/30 shadow-sm">
-              <Wallet className="h-10 w-10 text-white" />
+            <div className="bg-amber-100/25 backdrop-blur p-3 rounded-full border border-white/30 shadow-sm">
+              <Wallet className="h-10 w-10 text-amber-500" />
             </div>
 
-            <div className="text-white">
-              <p className="text-lg font-extrabold opacity-90">Welcome 👋</p>
-              <p className="text-2xl md:text-3xl font-semibold tracking-tight">
+            <div >
+              <p className="text-lg text-white font-extrabold opacity-90">Welcome 👋</p>
+              <p className="text-2xl text-amber-500 md:text-3xl font-semibold tracking-tight">
                 {userName}
               </p>
             </div>
