@@ -17,8 +17,8 @@ export default function BuyTicketSimplePage() {
       {/* Top bar */}
       <header className="sticky top-0 z-30 bg-amber-500/20 backdrop-blu">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center gap-2">
-          <Link href="/tickets" className="rounded-full p-2 -ml-2 hover:bg-gray-100">
-            <ChevronLeft className="h-5 w-5 text-white" />
+           <Link href="/tickets" className="rounded-full p-2 -ml-2 hover:bg-gray-100 text-white hover:text-black">
+            <ChevronLeft className="h-5 w-5" />
           </Link>
           <h1 className="text-base font-semibold text-white">{product.name}</h1>
         </div>

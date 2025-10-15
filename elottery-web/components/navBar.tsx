@@ -14,6 +14,8 @@ const NavBar = () => {
     { name: "Buy Tickets", href: "/tickets" },
     { name: "My Wallet", href: "/wallet" },
     { name: "History", href: "/history" },
+    { name: "Draw History", href: "/history/draws" },
+
   ];
 
   return (

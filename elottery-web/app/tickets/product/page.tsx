@@ -6,9 +6,9 @@ import { ChevronLeft, CheckCircle2 } from "lucide-react";
 
 type PrizeTier = { rank: string; count: number; amount: number };
 type ProductDetail = {
-  name: string;            // เช่น "สลากดิจิทัล 1 ปี"
-  prizeTiers: PrizeTier[]; // ตารางรางวัล
-  notes: string[];         // บูลเล็ตเงื่อนไข
+  name: string;            
+  prizeTiers: PrizeTier[]; 
+  notes: string[];       
 };
 
 function useProduct(slug: string): ProductDetail {
@@ -40,8 +40,8 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
       {/* Top bar */}
       <header className="sticky top-0 z-30 bg-amber-500/20 backdrop-blur text-white">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center gap-2">
-          <Link href="/tickets" className="rounded-full p-2 -ml-2 hover:bg-gray-100">
-            <ChevronLeft className="h-5 w-5 text-white" />
+          <Link href="/tickets" className="rounded-full p-2 -ml-2 hover:bg-gray-100 text-white hover:text-black">
+            <ChevronLeft className="h-5 w-5" />
           </Link>
           <h1 className="text-base font-semibold text-white">{data.name}</h1>
         </div>
