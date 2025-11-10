@@ -12,7 +12,6 @@ import crypto from "crypto";
 const REGION = process.env.COGNITO_REGION!;
 const CLIENT_ID = process.env.COGNITO_CLIENT_ID!;
 const CLIENT_SECRET = process.env.COGNITO_CLIENT_SECRET || "";
-const USER_POOL_ID = process.env.COGNITO_USER_POOL_ID!;
 
 // ====== CLIENT ======
 export const cognitoClient = new CognitoIdentityProviderClient({ region: REGION });

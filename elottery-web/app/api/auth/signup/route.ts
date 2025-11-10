@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         message: "Signup successful! Please confirm your email.",
-        cognitoSub: response.UserSub,
+        email,
       },
       { status: 201 }
     );

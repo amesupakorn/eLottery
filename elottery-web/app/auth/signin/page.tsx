@@ -34,7 +34,7 @@ export default function LoginPage() {
     }
 
     try {
-      await api.post("/auth/login", form);
+      await api.post("/auth/signin", form);
       setSuccess("Login successful! Redirecting to home...");
       setTimeout(() => {
         window.location.href = "/";
@@ -115,7 +115,7 @@ export default function LoginPage() {
                 ${isLoading ? "bg-amber-400 cursor-not-allowed" : "bg-amber-500 hover:bg-amber-600"}
                 text-white py-2`}
             >
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : "Sign Up"}
+              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : "Login"}
             </button>
           </form>
 
