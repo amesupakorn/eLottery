@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { Wallet, ArrowDownCircle, ArrowUpCircle, History, Settings, Eye } from "lucide-react";
+import Link from "next/link";
 
 export default function WalletPage() {
   const [tab, setTab] = useState<"transactions" | "history">("transactions");
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-amber-50 to-white px-4 pb-10 pt-10">
+    <main className="min-h-screen bg-gradient-to-b from-emerald-500 to-gray-950 px-4 pb-10 pt-10">
 
       <div className="mx-auto w-full max-w-md">
         {/* Wallet Card */}
@@ -33,9 +34,15 @@ export default function WalletPage() {
         {/* Quick Actions */}
         <section className="mt-5">
           <div className="grid grid-cols-3 gap-3 text-center">
-            <Action icon={<ArrowDownCircle className="h-6 w-6" />} label="ฝากเงิน" />
-            <Action icon={<ArrowUpCircle className="h-6 w-6" />} label="ถอนเงิน" />
-            <Action icon={<History className="h-6 w-6" />} label="ประวัติธุรกรรม" />
+            <Link href="">
+               <Action icon={<ArrowDownCircle className="h-6 w-6" />} label="ฝากเงิน" />
+            </Link>
+            <Link href="/wallet/withdraw">
+               <Action icon={<ArrowUpCircle className="h-6 w-6" />} label="ถอนเงิน" />
+            </Link>
+            <Link href="">
+               <Action icon={<History className="h-6 w-6" />} label="ประวัติธุรกรรม" />
+            </Link>
           </div>
         </section>
 
@@ -77,11 +84,14 @@ export default function WalletPage() {
 
 function Action({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <button className="group rounded-xl border border-gray-200 bg-white p-3 shadow-sm hover:shadow transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
-      <div className="flex flex-col items-center gap-2">
-        <span className="text-amber-600 group-hover:text-amber-700">{icon}</span>
-        <span className="text-[11px] font-medium text-gray-700">{label}</span>
-      </div>
+    <button
+      className="w-full h-full flex flex-col justify-center items-center
+                 bg-white rounded-xl border border-gray-200 shadow-sm
+                 hover:shadow-md hover:bg-emerald-50 transition
+                 py-4 px-2"
+    >
+      <div className="text-emerald-500">{icon}</div>
+      <span className="mt-2 text-xs font-medium text-gray-700">{label}</span>
     </button>
   );
 }
