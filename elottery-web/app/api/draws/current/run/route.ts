@@ -11,6 +11,8 @@ const DEFAULT_TIERS = [
   { tier_name: "อันดับที่ 3", prize_amount: new Prisma.Decimal(10_000),    winners_count: 5 },
 ];
 
+const PRIZE_NOTIFY_API_URL = process.env.PRIZE_NOTIFY_API_URL;
+
 function randInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -36,6 +38,7 @@ export async function POST(_req: NextRequest) {
       }
     });
   }
+
   const tiers = await prisma.prizeTier.findMany({
     where: { draw_id: draw.id },
     orderBy: { id: "asc" },
@@ -46,7 +49,12 @@ export async function POST(_req: NextRequest) {
 
   // สุ่มเลขไม่ซ้ำ
   const used = new Set<string>();
-  const picks: { prize_tier_id: number; ticket_number: string; prize_amount: Prisma.Decimal }[] = [];
+  const picks: {
+    prize_tier_id: number;
+    ticket_number: string;
+    prize_amount: Prisma.Decimal;
+    tier_name?: string;
+  }[] = [];
 
   for (const tier of tiers) {
     for (let i = 0; i < tier.winners_count; i++) {
@@ -60,10 +68,12 @@ export async function POST(_req: NextRequest) {
         prize_tier_id: tier.id,
         ticket_number: ticket,
         prize_amount: tier.prize_amount as Prisma.Decimal,
+        tier_name: tier.tier_name,
       });
     }
   }
 
+  // บันทึกผล
   await prisma.$transaction(async (tx) => {
     for (const p of picks) {
       await tx.drawResult.create({
@@ -75,7 +85,51 @@ export async function POST(_req: NextRequest) {
         },
       });
     }
+
+    // อัปเดตสถานะเป็น PUBLISHED หลังจับเสร็จ
+    await tx.draw.update({
+      where: { id: draw.id },
+      data: { status: DrawStatus.PUBLISHED },
+    });
   });
 
-  return NextResponse.json({ message: "Drawn", drawId: draw.id, winners: picks.map(p => p.ticket_number) });
+  // เรียก API Gateway → Lambda → SNS (แจ้งผลออกรางวัล)
+  if (PRIZE_NOTIFY_API_URL) {
+    try {
+      // ส่งข้อมูลพอประมาณไปให้ Lambda ประกอบข้อความ (หรือจะส่งแค่ drawId ก็ได้)
+      const notifyBody = {
+        drawId: draw.id,
+        drawCode: draw.draw_code,
+        productName: draw.product_name,
+        winners: picks.map((p) => ({
+          tier_name: p.tier_name,
+          ticket_number: p.ticket_number,
+          prize_amount: p.prize_amount.toNumber(), // แปลงเป็น number เพื่อส่งไป JSON
+        })),
+      };
+
+      const res = await fetch(PRIZE_NOTIFY_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(notifyBody),
+      });
+
+      if (!res.ok) {
+        console.error("Prize notify failed:", await res.text());
+      }
+    } catch (err) {
+      console.error("Error calling PRIZE_NOTIFY_API_URL:", err);
+    }
+  } else {
+    console.warn("PRIZE_NOTIFY_API_URL is not set, skipping SNS notify");
+  }
+
+  return NextResponse.json({
+    message: "Drawn",
+    drawId: draw.id,
+    winners: picks.map((p) => ({
+      tier_name: p.tier_name,
+      ticket_number: p.ticket_number,
+    })),
+  });
 }
