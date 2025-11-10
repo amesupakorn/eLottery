@@ -6,6 +6,7 @@ import Link from "next/link";
 
 export default function WalletPage() {
   const [tab, setTab] = useState<"transactions" | "history">("transactions");
+  
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-emerald-500 to-gray-950 px-4 pb-10 pt-10">
@@ -34,7 +35,7 @@ export default function WalletPage() {
         {/* Quick Actions */}
         <section className="mt-5">
           <div className="grid grid-cols-3 gap-3 text-center">
-            <Link href="">
+            <Link href="/wallet/deposit">
                <Action icon={<ArrowDownCircle className="h-6 w-6" />} label="ฝากเงิน" />
             </Link>
             <Link href="">
