@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { POST as lockPOST } from "../lock/route";
 import { POST as runPOST } from "../run/route";
 import { POST as publishPOST } from "../publish/route";
-import { GET as resultsGET } from "../results/route";
 
 export const runtime = "nodejs";
 

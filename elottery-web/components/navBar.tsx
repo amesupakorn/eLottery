@@ -49,29 +49,41 @@ const NavBar = () => {
         </div>
 
         {/* Right: buttons */}
-            {user ? (
-               <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-white" />
-                <span className="text-sm">{user.name}</span>
-              </div>
-    
-            ) : (
-              <div className="hidden md:flex items-center space-x-3">
-                <Link
-                  href="/auth/signin"
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-amber-600 dark:hover:text-amber-400 transition"
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold shadow transition"
-                >
-                  Sign Up
-                </Link>
-              </div>
-             )
-            }
+          {user ? (
+            <div className="flex items-center gap-3">
+              <User className="h-5 w-5 text-amber-500" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{user.name}</span>
+
+              <button
+                onClick={async () => {
+                  try {
+                    await fetch("/api/auth/logout", { method: "POST" });
+                    window.location.href = "/auth/signin"; // redirect ไปหน้า login
+                  } catch (err) {
+                    console.error("Logout error:", err);
+                  }
+                }}
+                className="ml-2 px-3 py-1 text-xs font-medium rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-800"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <div className="hidden md:flex items-center space-x-3">
+              <Link
+                href="/auth/signin"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-amber-600 dark:hover:text-amber-400 transition"
+              >
+                Login
+              </Link>
+              <Link
+                href="/auth/signup"
+                className="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold shadow transition"
+              >
+                Sign Up
+              </Link>
+            </div>
+          )}
         {/* Mobile menu toggle */}
         <button
           onClick={() => setOpen(!open)}
