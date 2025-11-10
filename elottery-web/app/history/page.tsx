@@ -1,20 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { History, Ticket, ArrowDownCircle, ArrowUpCircle, Search } from "lucide-react";
-import type { LedgerItem, TicketItem } from "@/types/history"
-
-const ledgerMock: LedgerItem[] = [
-  { id: "L001", type: "DEPOSIT", amount: 500.0, note: "PromptPay", occurredAt: "2025-10-05T12:15:00Z" },
-  { id: "L002", type: "PURCHASE", amount: -80.0, note: "ซื้อสลาก 2 ใบ", occurredAt: "2025-10-05T13:30:00Z" },
-  { id: "L003", type: "PRIZE", amount: 40.0, note: "ถูกรางวัลเลขท้าย", occurredAt: "2025-10-05T18:00:00Z" },
-  { id: "L004", type: "WITHDRAW", amount: -200.0, note: "โอนไปบัญชีธนาคาร", occurredAt: "2025-10-06T03:00:00Z" },
-];
-
-const ticketsMock: TicketItem[] = [
-  { id: "T001", ticketNumber: "000123", product: "สลากออมสิน ดิจิทัล", status: "OWNED", price: 40, purchasedAt: "2025-10-05T13:31:00Z" },
-  { id: "T002", ticketNumber: "987654", product: "สลากออมสิน ดิจิทัล", status: "WIN", price: 40, purchasedAt: "2025-10-05T13:31:00Z" },
-];
+import type { LedgerItem, TicketItem } from "@/types/history";
 
 export default function HistoryPage() {
   const [tab, setTab] = useState<"ledger" | "tickets">("ledger");
@@ -24,7 +12,6 @@ export default function HistoryPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 px-4 pb-10 pt-10">
-
       <div className="mx-auto w-full max-w-md">
         {/* Tabs */}
         <div className="mt-4 grid grid-cols-2 rounded-xl bg-gray-100 p-1 text-sm">
@@ -33,12 +20,6 @@ export default function HistoryPage() {
             className={`py-2 rounded-lg transition ${tab === "ledger" ? "bg-white text-amber-700 shadow" : "text-gray-600 hover:text-gray-800"}`}
           >
             เดินบัญชี
-          </button>
-          <button
-            onClick={() => setTab("tickets")}
-            className={`py-2 rounded-lg transition ${tab === "tickets" ? "bg-white text-amber-700 shadow" : "text-gray-600 hover:text-gray-800"}`}
-          >
-            สลากดิจิทัล
           </button>
         </div>
 
@@ -49,7 +30,7 @@ export default function HistoryPage() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder={tab === "ledger" ? "ค้นหาโน้ต / ประเภทรายการ" : "ค้นหาหมายเลขสลาก / ผลิตภัณฑ์"}
+              placeholder={tab === "ledger" ? "ค้นหาโน้ต / ประเภทธุรกรรม" : "ค้นหาหมายเลขสลาก / ผลิตภัณฑ์"}
               className="w-full bg-transparent text-sm outline-none"
             />
           </div>
@@ -84,7 +65,67 @@ export default function HistoryPage() {
 
 /* ---------------- Components ---------------- */
 
+// เดินบัญชี (เชื่อม /api/history/transactions)
 function LedgerList({ q, from, to }: { q: string; from: string; to: string }) {
+  const [serverItems, setServerItems] = useState<LedgerItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // WITHDRAWAL (DB) -> WITHDRAW (UI เดิม)
+  const mapEntryTypeToUi = (t: string): LedgerItem["type"] => {
+    if (t === "WITHDRAWAL") return "WITHDRAW";
+    return t as LedgerItem["type"];
+  };
+
+  useEffect(() => {
+    const u = new URL("/api/history/transactions", window.location.origin);
+    u.searchParams.set("userId", "1001"); // user จำลอง
+    if (q?.trim()) u.searchParams.set("q", q.trim());
+    if (from) u.searchParams.set("from", from);
+    if (to) u.searchParams.set("to", to);
+
+    setLoading(true);
+    fetch(u.toString())
+      .then((r) => r.json())
+      .then((data) => {
+        // รองรับทั้งรูป `{ items }` และรูป `{ transactions }` ถ้าเผลอใช้โค้ดเก่า
+        const txs = (data.items ?? data.transactions ?? []) as Array<{
+          id: number | string;
+          entry_type?: string; // ในบาง API
+          type?: string;       // เผื่อ map มาแล้ว
+          amount: number | string;
+          note?: string | null;
+          occurredAt?: string;
+          occurred_at?: string;
+          direction?: "CREDIT" | "DEBIT";
+        }>;
+
+        const mapped: LedgerItem[] = txs.map((t) => {
+          const entry = (t.type ?? t.entry_type ?? "DEPOSIT") as string;
+          const amountNumber =
+            typeof t.amount === "string" ? Number(t.amount) : (t.amount ?? 0);
+          // ถ้ามี direction ให้ +/- ตามนั้น แต่ถ้า API ส่งมาเป็น amount พร้อมเครื่องหมายแล้ว ก็ใช้ตามเดิม
+          const signed =
+            t.direction
+              ? t.direction === "CREDIT"
+                ? Math.abs(amountNumber)
+                : -Math.abs(amountNumber)
+              : amountNumber;
+
+          return {
+            id: String(t.id),
+            type: mapEntryTypeToUi(entry),
+            amount: signed,
+            note: t.note ?? undefined,
+            occurredAt: (t.occurredAt ?? t.occurred_at ?? new Date().toISOString()) as string,
+          };
+        });
+
+        setServerItems(mapped);
+      })
+      .finally(() => setLoading(false));
+  }, [q, from, to]);
+
+  // กรองฝั่ง client ให้พฤติกรรมเหมือนตอนใช้ mock
   const items = useMemo(() => {
     const f = (it: LedgerItem) => {
       const inRange =
@@ -97,10 +138,22 @@ function LedgerList({ q, from, to }: { q: string; from: string; to: string }) {
         it.note?.toLowerCase().includes(keyword);
       return inRange && match;
     };
-    return ledgerMock.filter(f);
-  }, [q, from, to]);
+    return serverItems.filter(f);
+  }, [serverItems, q, from, to]);
 
-  if (!items.length) return <EmptyCard icon={<History className="h-8 w-8 text-gray-400" />} title="ยังไม่มีรายการเดินบัญชี" note="เมื่อมีการฝาก/ถอน/ซื้อสลาก จะปรากฏที่นี่" />;
+  if (loading) {
+    return <EmptyCard icon={<History className="h-8 w-8 text-gray-400" />} title="กำลังโหลดรายการ" note="ดึงข้อมูลจากฐานข้อมูล..." />;
+  }
+
+  if (!items.length) {
+    return (
+      <EmptyCard
+        icon={<History className="h-8 w-8 text-gray-400" />}
+        title="ยังไม่มีรายการเดินบัญชี"
+        note="เมื่อมีการฝาก/ถอน/ซื้อสลาก จะปรากฏที่นี่"
+      />
+    );
+  }
 
   return (
     <ul className="space-y-2">
@@ -112,7 +165,9 @@ function LedgerList({ q, from, to }: { q: string; from: string; to: string }) {
               <p className="text-sm font-medium text-gray-800">
                 {labelType(it.type)}
               </p>
-              <p className="text-xs text-gray-500">{formatDate(it.occurredAt)} · {it.note || "-"}</p>
+              <p className="text-xs text-gray-500">
+                {formatDate(it.occurredAt)} · {it.note || "-"}
+              </p>
             </div>
             <p className={`text-sm font-semibold ${it.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
               {it.amount >= 0 ? "+" : ""}
@@ -125,8 +180,27 @@ function LedgerList({ q, from, to }: { q: string; from: string; to: string }) {
   );
 }
 
+// สลากดิจิทัล (เชื่อม /api/history/tickets)
 function TicketList({ q, from, to }: { q: string; from: string; to: string }) {
-  const items = useMemo(() => {
+  const [items, setItems] = useState<TicketItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const u = new URL("/api/history/tickets", window.location.origin);
+    u.searchParams.set("userId", "1001"); // user จำลอง
+    if (q?.trim()) u.searchParams.set("q", q.trim());
+    if (from) u.searchParams.set("from", from);
+    if (to) u.searchParams.set("to", to);
+
+    setLoading(true);
+    fetch(u.toString())
+      .then((r) => r.json())
+      .then((data) => setItems(data.items ?? []))
+      .finally(() => setLoading(false));
+  }, [q, from, to]);
+
+  // กรองฝั่ง client แบบเดิม
+  const filtered = useMemo(() => {
     const f = (it: TicketItem) => {
       const inRange =
         (!from || new Date(it.purchasedAt) >= new Date(from)) &&
@@ -139,14 +213,20 @@ function TicketList({ q, from, to }: { q: string; from: string; to: string }) {
         it.status.toLowerCase().includes(keyword);
       return inRange && match;
     };
-    return ticketsMock.filter(f);
-  }, [q, from, to]);
+    return items.filter(f);
+  }, [items, q, from, to]);
 
-  if (!items.length) return <EmptyCard icon={<Ticket className="h-8 w-8 text-gray-400" />} title="ยังไม่มีสลากดิจิทัล" note="ซื้อสลากแล้วจะแสดงที่นี่" />;
+  if (loading) {
+    return <EmptyCard icon={<Ticket className="h-8 w-8 text-gray-400" />} title="กำลังโหลดสลาก" note="ดึงข้อมูลจากฐานข้อมูล..." />;
+  }
+
+  if (!filtered.length) {
+    return <EmptyCard icon={<Ticket className="h-8 w-8 text-gray-400" />} title="ยังไม่มีสลากดิจิทัล" note="ซื้อสลากแล้วจะแสดงที่นี่" />;
+  }
 
   return (
     <ul className="space-y-2">
-      {items.map((it) => (
+      {filtered.map((it) => (
         <li key={it.id} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
           <div className="flex items-center gap-3">
             <span className={`inline-flex items-center justify-center rounded-xl p-2 text-white ${statusColor(it.status)}`}>
@@ -167,6 +247,8 @@ function TicketList({ q, from, to }: { q: string; from: string; to: string }) {
   );
 }
 
+/* ---------------- Shared UI ---------------- */
+
 function EmptyCard({ icon, title, note }: { icon: React.ReactNode; title: string; note: string }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white py-10">
@@ -179,11 +261,11 @@ function EmptyCard({ icon, title, note }: { icon: React.ReactNode; title: string
 
 function Badge({ type }: { type: LedgerItem["type"] }) {
   const map = {
-    DEPOSIT: { bg: "bg-emerald-100 text-emerald-700", icon: <ArrowDownCircle className="h-4 w-4" /> },
-    WITHDRAW: { bg: "bg-red-100 text-red-700", icon: <ArrowUpCircle className="h-4 w-4" /> },
-    PRIZE: { bg: "bg-amber-100 text-amber-700", icon: <Ticket className="h-4 w-4" /> },
-    PURCHASE: { bg: "bg-gray-100 text-gray-700", icon: <Ticket className="h-4 w-4" /> },
-    REFUND: { bg: "bg-blue-100 text-blue-700", icon: <History className="h-4 w-4" /> },
+    DEPOSIT:  { bg: "bg-emerald-100 text-emerald-700", icon: <ArrowDownCircle className="h-4 w-4" /> },
+    WITHDRAW: { bg: "bg-red-100 text-red-700",         icon: <ArrowUpCircle className="h-4 w-4" /> },
+    PRIZE:    { bg: "bg-amber-100 text-amber-700",     icon: <Ticket className="h-4 w-4" /> },
+    PURCHASE: { bg: "bg-gray-100 text-gray-700",       icon: <Ticket className="h-4 w-4" /> },
+    REFUND:   { bg: "bg-blue-100 text-blue-700",       icon: <History className="h-4 w-4" /> },
   } as const;
   const { bg, icon } = map[type];
   return <span className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium ${bg}`}>{icon}{labelType(type)}</span>;
