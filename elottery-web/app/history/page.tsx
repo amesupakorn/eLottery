@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { History, Ticket, ArrowDownCircle, ArrowUpCircle, Search } from "lucide-react";
+import {
+  History as HistoryIcon,
+  Ticket as TicketIcon,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Search,
+} from "lucide-react";
+
 import type { LedgerItem, TicketItem } from "@/types/history";
 
 export default function HistoryPage() {
@@ -13,13 +20,19 @@ export default function HistoryPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 px-4 pb-10 pt-10">
       <div className="mx-auto w-full max-w-md">
-        {/* Tabs */}
+        {/* ✅ Tabs: ใส่กลับมาให้ครบ 2 ปุ่ม */}
         <div className="mt-4 grid grid-cols-2 rounded-xl bg-gray-100 p-1 text-sm">
           <button
             onClick={() => setTab("ledger")}
             className={`py-2 rounded-lg transition ${tab === "ledger" ? "bg-white text-amber-700 shadow" : "text-gray-600 hover:text-gray-800"}`}
           >
             เดินบัญชี
+          </button>
+          <button
+            onClick={() => setTab("tickets")}
+            className={`py-2 rounded-lg transition ${tab === "tickets" ? "bg-white text-amber-700 shadow" : "text-gray-600 hover:text-gray-800"}`}
+          >
+            สลากดิจิทัล
           </button>
         </div>
 
@@ -50,7 +63,7 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        {/* Lists */}
+        {/* ✅ แสดงรายการตามแท็บ */}
         <section className="mt-4">
           {tab === "ledger" ? (
             <LedgerList q={q} from={from} to={to} />
@@ -142,13 +155,13 @@ function LedgerList({ q, from, to }: { q: string; from: string; to: string }) {
   }, [serverItems, q, from, to]);
 
   if (loading) {
-    return <EmptyCard icon={<History className="h-8 w-8 text-gray-400" />} title="กำลังโหลดรายการ" note="ดึงข้อมูลจากฐานข้อมูล..." />;
+    return <EmptyCard icon={<HistoryIcon className="h-8 w-8 text-gray-400" />} title="กำลังโหลดรายการ" note="ดึงข้อมูลจากฐานข้อมูล..." />;
   }
 
   if (!items.length) {
     return (
       <EmptyCard
-        icon={<History className="h-8 w-8 text-gray-400" />}
+        icon={<HistoryIcon className="h-8 w-8 text-gray-400" />}
         title="ยังไม่มีรายการเดินบัญชี"
         note="เมื่อมีการฝาก/ถอน/ซื้อสลาก จะปรากฏที่นี่"
       />
@@ -217,11 +230,11 @@ function TicketList({ q, from, to }: { q: string; from: string; to: string }) {
   }, [items, q, from, to]);
 
   if (loading) {
-    return <EmptyCard icon={<Ticket className="h-8 w-8 text-gray-400" />} title="กำลังโหลดสลาก" note="ดึงข้อมูลจากฐานข้อมูล..." />;
+    return <EmptyCard icon={<TicketIcon className="h-8 w-8 text-gray-400" />} title="กำลังโหลดสลาก" note="ดึงข้อมูลจากฐานข้อมูล..." />;
   }
 
   if (!filtered.length) {
-    return <EmptyCard icon={<Ticket className="h-8 w-8 text-gray-400" />} title="ยังไม่มีสลากดิจิทัล" note="ซื้อสลากแล้วจะแสดงที่นี่" />;
+    return <EmptyCard icon={<TicketIcon className="h-8 w-8 text-gray-400" />} title="ยังไม่มีสลากดิจิทัล" note="ซื้อสลากแล้วจะแสดงที่นี่" />;
   }
 
   return (
@@ -230,7 +243,7 @@ function TicketList({ q, from, to }: { q: string; from: string; to: string }) {
         <li key={it.id} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
           <div className="flex items-center gap-3">
             <span className={`inline-flex items-center justify-center rounded-xl p-2 text-white ${statusColor(it.status)}`}>
-              <Ticket className="h-5 w-5" />
+              <TicketIcon className="h-5 w-5" />
             </span>
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-800">เลข {it.ticketNumber}</p>
@@ -263,12 +276,19 @@ function Badge({ type }: { type: LedgerItem["type"] }) {
   const map = {
     DEPOSIT:  { bg: "bg-emerald-100 text-emerald-700", icon: <ArrowDownCircle className="h-4 w-4" /> },
     WITHDRAW: { bg: "bg-red-100 text-red-700",         icon: <ArrowUpCircle className="h-4 w-4" /> },
-    PRIZE:    { bg: "bg-amber-100 text-amber-700",     icon: <Ticket className="h-4 w-4" /> },
-    PURCHASE: { bg: "bg-gray-100 text-gray-700",       icon: <Ticket className="h-4 w-4" /> },
-    REFUND:   { bg: "bg-blue-100 text-blue-700",       icon: <History className="h-4 w-4" /> },
+    PRIZE:    { bg: "bg-amber-100 text-amber-700",     icon: <TicketIcon className="h-4 w-4" /> },
+    PURCHASE: { bg: "bg-gray-100 text-gray-700",       icon: <TicketIcon className="h-4 w-4" /> },
+    REFUND:   { bg: "bg-blue-100 text-blue-700",       icon: <HistoryIcon className="h-4 w-4" /> },
   } as const;
   const { bg, icon } = map[type];
-  return <span className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium ${bg}`}>{icon}{labelType(type)}</span>;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium ${bg}`}
+    >
+      {icon}
+      {labelType(type)}
+    </span>
+  );
 }
 
 /* ---------------- Utils ---------------- */
