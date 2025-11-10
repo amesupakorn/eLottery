@@ -1,8 +1,9 @@
 "use client";
+import { useUser } from "@/context/UserContext";
 import { CreditCard, Send, Wallet, Star, PlusCircle } from "lucide-react";
 
 export default function DashboardPage() {
-  const userName = "Supakorn";
+  const { user } = useUser();
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900">
@@ -21,7 +22,7 @@ export default function DashboardPage() {
             <div >
               <p className="text-lg text-white font-extrabold opacity-90">Welcome 👋</p>
               <p className="text-2xl text-amber-500 md:text-3xl font-semibold tracking-tight">
-                {userName}
+                {user?.name}
               </p>
             </div>
           </div>

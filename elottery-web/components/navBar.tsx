@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, User, X } from "lucide-react";
+import { useUser } from "@/context/UserContext";
 
 const NavBar = () => {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { user } = useUser();
 
   const navLinks = [
     { name: "Home", href: "/" },
@@ -47,21 +49,29 @@ const NavBar = () => {
         </div>
 
         {/* Right: buttons */}
-        <div className="hidden md:flex items-center space-x-3">
-          <Link
-            href="/auth/signin"
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-amber-600 dark:hover:text-amber-400 transition"
-          >
-            Login
-          </Link>
-          <Link
-            href="/auth/signup"
-            className="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold shadow transition"
-          >
-            Sign Up
-          </Link>
-        </div>
-
+            {user ? (
+               <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-white" />
+                <span className="text-sm">{user.name}</span>
+              </div>
+    
+            ) : (
+              <div className="hidden md:flex items-center space-x-3">
+                <Link
+                  href="/auth/signin"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-amber-600 dark:hover:text-amber-400 transition"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  className="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold shadow transition"
+                >
+                  Sign Up
+                </Link>
+              </div>
+             )
+            }
         {/* Mobile menu toggle */}
         <button
           onClick={() => setOpen(!open)}
