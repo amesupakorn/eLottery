@@ -87,10 +87,10 @@ export async function POST(_req: NextRequest) {
     }
 
     // อัปเดตสถานะเป็น PUBLISHED หลังจับเสร็จ
-    await tx.draw.update({
-      where: { id: draw.id },
-      data: { status: DrawStatus.PUBLISHED },
-    });
+    // await tx.draw.update({
+    //   where: { id: draw.id },
+    //   data: { status: DrawStatus.PUBLISHED },
+    // });
   });
 
   // เรียก API Gateway → Lambda → SNS (แจ้งผลออกรางวัล)
