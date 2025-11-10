@@ -5,6 +5,7 @@ import { createContext, useContext, useState } from "react";
 type User = {
   email: string;
   name?: string | null;
+  notify_opt?: boolean | null; 
 };
 
 type UserContextType = {
