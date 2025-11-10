@@ -52,8 +52,9 @@ model User {
   full_name   String?     @db.VarChar(255)
   status      UserStatus  @default(ACTIVE)
   created_at  DateTime    @default(now())
-  cognito_sub String?    @unique
+  cognito_sub String?     @unique
   Wallet      Wallet?
+  notify_opt  Boolean?    @default(false)
   @@map("users")
 }
 
