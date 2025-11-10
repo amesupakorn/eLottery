@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/prisma/prisma"; // ปรับให้ตรง alias ของโปรเจกต์คุณ
+import { prisma } from "@/prisma/prisma";
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,35 +10,43 @@ export async function GET(req: NextRequest) {
     const from = searchParams.get("from"); // YYYY-MM-DD
     const to   = searchParams.get("to");   // YYYY-MM-DD
 
-    // 1) ดึงรายการสลากของ user + ข้อมูลงวด
+    // 1) ดึงรายการซื้อสลากของผู้ใช้ (ไม่มี include เพราะไม่ได้ประกาศ relation ใน schema)
     const purchases = await prisma.ticketPurchase.findMany({
       where: {
         user_id: userId,
-        AND: q ? [{ ticket_number: { contains: q } }] : undefined,
+        ...(q
+          ? { ticket_number: { contains: q } }
+          : {}),
       },
-      include: { draw: true },
       orderBy: { id: "desc" },
     });
 
-    // 2) ดึงผลรางวัลของ purchase เหล่านี้
-    const purchaseIds = purchases.map((p) => p.id);
-    const results = purchaseIds.length
-      ? await prisma.drawResult.findMany({
-          where: { purchase_item_id: { in: purchaseIds } },
-        })
-      : [];
+    if (!purchases.length) {
+      return NextResponse.json({ items: [] });
+    }
 
-    const winByPurchaseId = new Map<number, { prize_amount: string }>();
+    // 2) ดึง Draw ที่เกี่ยวข้องด้วย draw_id แล้วทำ map
+    const drawIds = Array.from(new Set(purchases.map(p => p.draw_id)));
+    const draws = await prisma.draw.findMany({
+      where: { id: { in: drawIds } },
+    });
+    const drawById = new Map(draws.map(d => [d.id, d]));
+
+    // 3) ดึงผลรางวัลของ purchase เหล่านี้เพื่อระบุ WIN
+    const purchaseIds = purchases.map(p => p.id);
+    const results = await prisma.drawResult.findMany({
+      where: { purchase_item_id: { in: purchaseIds } },
+    });
+    const winByPurchaseId = new Map<number, { prize_amount: number }>();
     for (const r of results) {
       if (r.purchase_item_id != null && !winByPurchaseId.has(r.purchase_item_id)) {
-        winByPurchaseId.set(r.purchase_item_id, {
-          prize_amount: r.prize_amount.toString(),
-        });
+        winByPurchaseId.set(r.purchase_item_id, { prize_amount: Number(r.prize_amount) });
       }
     }
 
-    // 3) map → payload แบบหน้า UI (TicketItem[])
-    const rawItems = purchases.map((p) => {
+    // 4) map → payload สำหรับ UI (TicketItem[])
+    const rawItems = purchases.map(p => {
+      const d = drawById.get(p.draw_id);
       const isWin = winByPurchaseId.has(p.id);
       const status: "OWNED" | "CANCELED" | "WIN" =
         p.status === "CANCELED" ? "CANCELED" : isWin ? "WIN" : "OWNED";
@@ -46,15 +54,15 @@ export async function GET(req: NextRequest) {
       return {
         id: String(p.id),
         ticketNumber: p.ticket_number,
-        product: p.draw?.product_name ?? "สลากดิจิทัล",
+        product: d?.product_name ?? "สลากดิจิทัล",
         status,
         price: Number(p.unit_price),
-        // schema ปัจจุบันไม่มีเวลาใน purchase → ใช้เวลางวดแทน
-        purchasedAt: (p.draw?.created_at ?? new Date()).toISOString(),
+        // ใช้เวลางวดเป็น purchasedAt (เพราะ schema ไม่มีเวลาใน purchase)
+        purchasedAt: (d?.created_at ?? new Date()).toISOString(),
       };
     });
 
-    // 4) กรองช่วงวันที่/ข้อความฝั่ง API (เสริม)
+    // 5) กรองช่วงวัน/ข้อความ (เสริม)
     const items = rawItems.filter((it) => {
       const t = new Date(it.purchasedAt).getTime();
       const okFrom = from ? t >= new Date(`${from}T00:00:00`).getTime() : true;
