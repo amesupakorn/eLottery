@@ -91,16 +91,14 @@ model AccountTransaction {
 
 /* ===== Ticket (running number table) ===== */
 model Ticket {
-  name       String   @id @db.VarChar(32)
-  prefix     String   @db.VarChar(8)
-  period     String   @db.Char(4)
-  last_no    Int
-  width      Int
-  updated_at DateTime @default(now())
+  name         String   @id @db.VarChar(32)
+  range_start  Int                              // เลขเริ่มต้นของชุดสลาก
+  range_end    Int                              // เลขสุดท้ายของชุดสลาก
+  width        Int
+  updated_at   DateTime @default(now())
 
   @@map("ticket")
 }
-
 /* ===== Ticket Purchases ===== */
 model TicketPurchase {
   id            Int      @id @default(autoincrement())

@@ -117,7 +117,7 @@ export default function ConfirmEmailPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full py-3 rounded-xl text-white font-semibold transition duration-300 ${
+              className={`w-full py-3 rounded-xl items-center justify-center text-white font-semibold transition duration-300 ${
                 isLoading
                   ? "bg-zinc-700 cursor-not-allowed"
                   : "bg-zinc-900 hover:bg-zinc-800"
