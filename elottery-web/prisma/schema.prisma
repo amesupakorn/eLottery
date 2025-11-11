@@ -115,7 +115,6 @@ model TicketPurchase {
   draw_id           Int        // งวดที่สลากนี้ร่วมลุ้น
   purchased_at      DateTime   @default(now()) // วันเวลาที่ซื้อ
 
-  // Optional relations (หากต้องการให้ Prisma join ข้อมูลได้)
   User              User       @relation(fields: [user_id], references: [id])
   Wallet            Wallet     @relation(fields: [wallet_id], references: [id])
   Draw              Draw       @relation(fields: [draw_id], references: [id])
