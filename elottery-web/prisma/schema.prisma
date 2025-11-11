@@ -56,6 +56,7 @@ model User {
   Wallet      Wallet?
   notify_opt  Boolean?    @default(false)
   @@map("users")
+  ticketPurchases TicketPurchase[]
 }
 
 model Wallet {
@@ -70,6 +71,7 @@ model Wallet {
   ledger     AccountTransaction[]
 
   @@map("wallets")
+  ticketPurchases TicketPurchase[]
 }
 
 model AccountTransaction {
@@ -101,18 +103,24 @@ model Ticket {
 }
 /* ===== Ticket Purchases ===== */
 model TicketPurchase {
-  id            Int      @id @default(autoincrement())
-  ticket_number String   @db.VarChar(32)
-  unit_price    Decimal  @db.Decimal(18, 2)
-  total_price   Decimal  @db.Decimal(18, 2)
-  status        TicketPurchaseStatus
+  id                Int       @id @default(autoincrement())
+  range_start       Int       // เลขเริ่มต้นของช่วงสลาก
+  range_end         Int       // เลขสุดท้ายของช่วงสลาก
+  unit_price        Decimal   @db.Decimal(18, 2)
+  total_price       Decimal   @db.Decimal(18, 2)
+  status            TicketPurchaseStatus 
 
-  user_id       Int
-  wallet_id     Int
-  draw_id       Int      // งวดที่สลากนี้ร่วมลุ้น
+  user_id           Int
+  wallet_id         Int
+  draw_id           Int        // งวดที่สลากนี้ร่วมลุ้น
+  purchased_at      DateTime   @default(now()) // วันเวลาที่ซื้อ
 
-  // (optional) index
-  @@index([draw_id, ticket_number])
+  // Optional relations (หากต้องการให้ Prisma join ข้อมูลได้)
+  User              User       @relation(fields: [user_id], references: [id])
+  Wallet            Wallet     @relation(fields: [wallet_id], references: [id])
+  Draw              Draw       @relation(fields: [draw_id], references: [id])
+
+  @@index([draw_id])
   @@index([user_id])
   @@index([wallet_id])
 
@@ -130,6 +138,7 @@ model Draw {
   results      DrawResult[]
 
   @@map("draws")
+  ticketPurchases TicketPurchase[]
 }
 model PrizeTier { // ระดับรางวัลของงวด
   id            Int      @id @default(autoincrement())
