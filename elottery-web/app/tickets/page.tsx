@@ -1,11 +1,42 @@
 "use client";
 
-import { useState } from "react";
-import { Ticket, Settings, History, Search, Eye } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Ticket, Settings, History, Search, Eye, HistoryIcon, ArrowDownCircle, ArrowUpCircle, WalletIcon, TicketIcon } from "lucide-react";
 import Link from "next/link";
+import { TicketPurchase } from "@/types/tickets";
+import api from "@/lib/axios";
+import { LedgerItem, TicketItem } from "@/types/history";
 
 export default function TicketPage() {
   const [tab, setTab] = useState<"tickets" | "ledger">("tickets");
+
+  const [total, setTotal] = useState(0);
+  const [count, setCount] = useState(0);
+  const [tickets, setTicket] = useState<TicketPurchase[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchTicket = async ( ) => {
+      setLoading(true);
+
+      try{
+        const res = await api.get('/lottery');
+        setTotal(res.data.total_value);
+        setCount(res.data.count);
+        setTicket(res.data.tickets);
+    
+      } catch(err){
+        console.log(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchTicket();
+
+  }, [])
+
+  const latest = tickets.slice(0, 5);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-amber-500 to-gray-950 px-4 pb-10 pt-10">
@@ -24,7 +55,7 @@ export default function TicketPage() {
 
             <div className="mt-6 flex items-end justify-between">
               <div className="space-y-1">
-                <p className="text-5xl font-semibold leading-none">0.00</p>
+                <p className="text-5xl font-semibold leading-none">{total}</p>
                 <p className="text-sm opacity-90">ยอดฝากสลากรวม</p>
               </div>
               <Ticket className="h-14 w-14 opacity-30" />
@@ -49,32 +80,24 @@ export default function TicketPage() {
 
         {/* Tabs */}
         <section className="mt-6">
-          <div className="grid grid-cols-2 rounded-xl bg-gray-100 p-1 text-sm">
+          <div className="rounded-xl bg-gray-100 p-1 text-sm ">
             <button
-              className={`py-2 rounded-lg transition ${
-                tab === "tickets"
-                  ? "bg-white text-amber-700 shadow"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-              onClick={() => setTab("tickets")}
+              className="py-2 w-full rounded-lg transition bg-white text-amber-700 shadow"
             >
-              สลาก (0)
-            </button>
-            <button
-              className={`py-2 rounded-lg transition ${
-                tab === "ledger"
-                  ? "bg-white text-amber-700 shadow"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-              onClick={() => setTab("ledger")}
-            >
-              รายการเดินบัญชี
+              จำนวนสลาก ({count})
             </button>
           </div>
 
-          {/* Content */}
           <div className="mt-5">
-            {tab === "tickets" ? <EmptyTickets /> : <EmptyLedger />}
+            {loading ? (
+              <EmptyLoading />
+            ) : (
+              tickets.length ? (
+                <TransactionList items={latest} />
+              ) : (
+                <EmptyTickets />
+              )
+            )}
           </div>
         </section>
       </div>
@@ -119,4 +142,89 @@ function EmptyLedger() {
       <p className="text-xs text-gray-500">เมื่อมีการเคลื่อนไหว จะปรากฏที่นี่</p>
     </div>
   );
+}
+
+function EmptyLoading() {
+  return (
+    <EmptyCard
+      icon={<HistoryIcon className="h-8 w-8 text-gray-400 animate-spin" />}
+      title="กำลังโหลดข้อมูล..."
+      note="กำลังดึงข้อมูลธุรกรรมจากระบบ"
+    />
+  );
+}
+
+function EmptyCard({
+  icon,
+  title,
+  note,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  note: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white py-10">
+      {icon}
+      <p className="mt-2 text-sm font-medium text-gray-700">{title}</p>
+      <p className="text-xs text-gray-500">{note}</p>
+    </div>
+  );
+}
+
+function TransactionList({ items }: { items: any[] }) {
+  return (
+    <ul className="space-y-2">
+      {items.map((it) => (
+        <li key={it.id} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className={`inline-flex items-center justify-center rounded-xl p-2 text-white ${statusColor(it.status)}`}>
+              <TicketIcon className="h-5 w-5" />
+            </span>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-800">เลข {it.range_start} - {it.range_end}</p>
+              <p className="text-xs text-gray-500">สลากดิจิทัล · {formatDate(it.purchased_at)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-semibold text-gray-900">{formatMoney(it.total_price)}</p>
+              <p className={`text-[11px] ${statusTextColor(it.status)}`}>{labelTicketStatus(it.status)}</p>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function formatMoney(n: number) {
+  return "฿ " + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function statusTextColor(s: TicketItem["status"]) {
+  switch (s) {
+    case "OWNED": return "text-amber-600";
+    case "CANCELED": return "text-gray-500";
+    case "WIN": return "text-emerald-600";
+  }
+}
+
+function statusColor(s: TicketItem["status"]) {
+  switch (s) {
+    case "OWNED": return "bg-amber-500";
+    case "CANCELED": return "bg-gray-400";
+    case "WIN": return "bg-emerald-500";
+  }
+}
+
+function labelTicketStatus(s: TicketItem["status"]) {
+  switch (s) {
+    case "OWNED": return "ถือครอง";
+    case "CANCELED": return "ยกเลิก";
+    case "WIN": return "ถูกรางวัล";
+  }
 }

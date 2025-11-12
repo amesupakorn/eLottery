@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 2) ดึง Draw ที่เกี่ยวข้องด้วย draw_id แล้วทำ map
-    const drawIds = Array.from(new Set(purchases.map(p => p.draw_id)));
+    const drawIds = Array.from(new Set(purchases.map(p => p.draw_id).filter((id): id is number => id !== null)));
     const draws = await prisma.draw.findMany({
       where: { id: { in: drawIds } },
     });
@@ -46,19 +46,23 @@ export async function GET(req: NextRequest) {
 
     // 4) map → payload สำหรับ UI (TicketItem[])
     const rawItems = purchases.map(p => {
-      const d = drawById.get(p.draw_id);
+      const d = p.draw_id != null ? drawById.get(p.draw_id) : undefined;
       const isWin = winByPurchaseId.has(p.id);
       const status: "OWNED" | "CANCELED" | "WIN" =
         p.status === "CANCELED" ? "CANCELED" : isWin ? "WIN" : "OWNED";
+      
+      const ticketNumber =
+          p.range_start === p.range_end
+            ? String(p.range_start)
+            : `${p.range_start} - ${p.range_end}`;
 
       return {
         id: String(p.id),
-        ticketNumber: p.ticket_number,
+        ticketNumber,
         product: d?.product_name ?? "สลากดิจิทัล",
         status,
-        price: Number(p.unit_price),
-        // ใช้เวลางวดเป็น purchasedAt (เพราะ schema ไม่มีเวลาใน purchase)
-        purchasedAt: (d?.created_at ?? new Date()).toISOString(),
+        price: Number(p.total_price),
+        purchasedAt: (p.purchased_at),
       };
     });
 

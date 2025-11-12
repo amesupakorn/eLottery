@@ -2,15 +2,32 @@
 
 import Link from "next/link";
 import { ChevronLeft, Ticket, Info, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import api from "@/lib/axios";
+import { Draw } from "@/types/draw";
 
 const product = {
-  id: "GOV-DEMO-1",
-  name: "สลากดิจิทัล 1 ปี",
-  drawCode: "624",   
   unitPrice: 100,     
 };
 
 export default function BuyTicketSimplePage() {
+
+  const [draw, setDraw] = useState<Draw>();
+
+  useEffect(() => {
+    const fetchDraw = async () => {
+      try{
+        const res = await api.get("/draws?status=SCHEDULED");
+        const draws = res.data.draws || [];
+        setDraw(draws[0]);
+      } catch (err) {
+        console.error("Error fetch", err);
+      }
+    }
+
+    fetchDraw();
+  }, []);
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900">
 
@@ -20,7 +37,7 @@ export default function BuyTicketSimplePage() {
            <Link href="/tickets" className="rounded-full p-2 -ml-2 hover:bg-gray-100 text-white hover:text-black">
             <ChevronLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-base font-semibold text-white">{product.name}</h1>
+          <h1 className="text-base font-semibold text-white">{draw?.draw_code}</h1>
         </div>
       </header>
 
@@ -30,19 +47,19 @@ export default function BuyTicketSimplePage() {
           <div className="flex items-center justify-between">
             <div className="inline-flex items-center gap-2 bg-white/25 backdrop-blur px-2 py-1 rounded-full text-xs">
               <Ticket className="h-4 w-4" />
-              <span>{product.id}</span>
+              <span>{draw?.draw_code}</span>
             </div>
-            <span className="text-sm opacity-90">{product.name}</span>
+            <span className="text-sm opacity-90">สลากดิจิทัล 1 ปี</span>
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3">
             <div>
               <p className="text-xs opacity-90">งวดปัจจุบัน</p>
-              <p className="text-3xl font-semibold leading-none">{product.drawCode}</p>
+              <p className="text-3xl font-semibold leading-none">{draw?.id}</p>
             </div>
             <div className="text-right">
               <p className="text-xs opacity-90">มูลค่าหน่วยละ</p>
-              <p className="text-2xl font-semibold">฿ {product.unitPrice.toFixed(2)}</p>
+              <p className="text-2xl font-semibold">฿ 100.00</p>
             </div>
           </div>
         </section>
@@ -78,11 +95,14 @@ export default function BuyTicketSimplePage() {
           >
             ย้อนกลับ
           </Link>
-          <Link
-            href={`/tickets/buy/confirm`}
-            className="flex-1 rounded-xl bg-amber-500 py-3 text-center text-sm font-semibold text-white hover:bg-amber-600"
-          >
-            ซื้อสลาก
+            <Link
+              href={draw ? `/tickets/buy/confirm?draw=${encodeURIComponent(draw.draw_code)}` : "#"}
+              className={`flex-1 rounded-xl py-3 text-center text-sm font-semibold text-white ${
+                draw ? "bg-amber-500 hover:bg-amber-600" : "bg-amber-300 cursor-not-allowed"
+              }`}
+              aria-disabled={!draw}
+            >
+              ซื้อสลาก
           </Link>
         </div>
       </div>

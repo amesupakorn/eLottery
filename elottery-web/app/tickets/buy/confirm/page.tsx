@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ChevronLeft,
   Wallet,
@@ -12,11 +12,12 @@ import {
   Plus,
   ShieldCheck,
 } from "lucide-react";
+import api from "@/lib/axios";
+import { useAlert } from "@/context/AlertContext";
 
-const WALLET_BALANCE = 3500; // ยอดเงินในกระเป๋า (mock)
 const MIN_AMOUNT = 1000;
 const STEP = 1000;
-const UNIT_PRICE = 100; // หน่วยละ 100 บาท
+const UNIT_PRICE = 100;
 const DRAW_CODE = "624";
 
 
@@ -34,7 +35,23 @@ function useDebounce(value: any, delay: number) {
 }
 
 export default function BuyTicketWalletPage() {
+  const sp = useSearchParams();
+  const drawCode = sp.get("draw"); 
+  const [draw, setDraw] = useState<any>(null);
+
+  useEffect(() => {
+    if (!drawCode) return;
+    (async () => {
+      // ถ้าต้องการรายละเอียดงวดจาก backend
+      const res = await api.get(`/draws?status=SCHEDULED`);
+      const found = (res.data?.draws || []).find((d: any) => d.draw_code === drawCode);
+      setDraw(found || null);
+    })();
+  }, [drawCode]);
+
+  const { setError, setSuccess } = useAlert();
   const [amount, setAmount] = useState(MIN_AMOUNT);
+  const [wallet, setWallet] = useState<number>(0);
   const totalUnits = Math.floor(amount / UNIT_PRICE);
   const router = useRouter();
   const [previewRange, setPreviewRange] = useState({
@@ -43,6 +60,20 @@ export default function BuyTicketWalletPage() {
   });
   const [isLoadingRange, setIsLoadingRange] = useState(false);
   const debouncedTotalUnits = useDebounce(totalUnits, 300);
+
+  
+    useEffect(() => {
+    const fetchWallet = async () => {
+      try {
+        const res = await api.get("/wallet");
+        setWallet(Number(res.data.balance ?? 0));
+      } catch (err) {
+        console.error("Error fetching wallet:", err);
+      }
+    };
+
+    fetchWallet();
+  }, []);
 
   const formattedAmount = useMemo(
     () =>
@@ -54,17 +85,7 @@ export default function BuyTicketWalletPage() {
     [amount]
   );
 
-  const formattedWallet = useMemo(
-    () =>
-      "฿ " +
-      WALLET_BALANCE.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }),
-    []
-  );
-
-  const isEnough = amount <= WALLET_BALANCE;
+  const isEnough = amount <= wallet;
   const isValidMin = amount >= MIN_AMOUNT;
   const canContinue = isValidMin && isEnough;
 
@@ -115,8 +136,7 @@ export default function BuyTicketWalletPage() {
 
         const quantity = Math.floor(amount / UNIT_PRICE);
         const payload = {
-          userId: 1, // mock user id
-          drawCode: DRAW_CODE, // คือ 624
+          drawCode: drawCode,
           quantity: quantity,
         };
 
@@ -130,13 +150,13 @@ export default function BuyTicketWalletPage() {
         const data = await res.json();
 
         if (!res.ok) {
-          alert(`❌ เกิดข้อผิดพลาด: ${data.error || "ไม่สามารถทำรายการได้"}`);
+          setError(`เกิดข้อผิดพลาด: ${data.error || "ไม่สามารถทำรายการได้"}`);
           return;
         }
         
 
-        alert(
-        `✅ ซื้อสลากสำเร็จ\nยอดเงิน: ${formattedAmount}\nจำนวนหน่วย: ${quantity}\nช่วงหมายเลข: ${previewRange.start} - ${previewRange.end}\n\nรหัสคำสั่งซื้อ #${data.id}`
+        setSuccess(
+        `ซื้อสลากสำเร็จ\nยอดเงิน: ${formattedAmount}\nจำนวนหน่วย: ${quantity}\nช่วงหมายเลข: ${previewRange.start} - ${previewRange.end}\n\nรหัสคำสั่งซื้อ #${data.id}`
          );
         router.push('/tickets');
       } catch (error) {
@@ -155,7 +175,7 @@ export default function BuyTicketWalletPage() {
             <ChevronLeft className="h-5 w-5" />
           </Link>
           
-          <h1 className="text-base font-semibold text-white">ซื้อสลากดิจิทัล</h1>
+          <h1 className="text-base font-semibold text-white">ซื้อสลากดิจิทัล {drawCode}</h1>
         </div>
       </header>
 
@@ -191,7 +211,7 @@ export default function BuyTicketWalletPage() {
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-gray-700">ยอดเงินในกระเป๋า</p>
-            <p className="text-sm font-semibold text-emerald-700">{formattedWallet}</p>
+            <p className="text-sm font-semibold text-emerald-700">฿ {wallet.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
         </section>
 

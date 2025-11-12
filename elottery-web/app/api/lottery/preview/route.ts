@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma'; // (ตรวจสอบว่า Path นี้ถูกต้อง)
+import { prisma } from '@/lib/prisma'; 
 
 const DEFAULT_START_NUMBER = 100000;
 
@@ -38,7 +38,6 @@ export async function GET(request: Request) {
         rangeStart = lastPurchase.range_end + 1;
       }
     }
-    // (ถ้า draw ไม่มีอยู่จริง ก็จะใช้ DEFAULT_START_NUMBER)
 
     // 3. คำนวณเลขสุดท้าย
     const rangeEnd = rangeStart + quantity - 1;
