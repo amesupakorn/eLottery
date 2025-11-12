@@ -50,40 +50,29 @@ model AccountTransaction {
   @@map("account_transaction")
 }
 
-/// ===== Ticket (running number table) =====
-model Ticket {
-  name         String   @id @db.VarChar(32)
-  range_start  Int                              // เลขเริ่มต้นของชุดสลาก
-  range_end    Int                              // เลขสุดท้ายของชุดสลาก
-  width        Int
-  updated_at   DateTime @default(now())
-
-  @@map("ticket")
-}
 /* ===== Ticket Purchases ===== */
 model TicketPurchase {
-  id                Int       @id @default(autoincrement())
-  range_start       Int       // เลขเริ่มต้นของช่วงสลาก
-  range_end         Int       // เลขสุดท้ายของช่วงสลาก
-  unit_price        Decimal   @db.Decimal(18, 2)
-  total_price       Decimal   @db.Decimal(18, 2)
-  status            TicketPurchaseStatus 
+  id           Int       @id @default(autoincrement())
+  range_start  Int
+  range_end    Int
+  unit_price   Decimal   @db.Decimal(18, 2)
+  total_price  Decimal   @db.Decimal(18, 2)
+  status       TicketPurchaseStatus
+  user_id      Int
+  wallet_id    Int
+  draw_id      Int?      // ← ตอนนี้เป็น optional
 
-  user_id           Int
-  wallet_id         Int
-  draw_id           Int        // งวดที่สลากนี้ร่วมลุ้น
-  purchased_at      DateTime   @default(now()) // วันเวลาที่ซื้อ
+  purchased_at DateTime  @default(now())
 
-  User              User       @relation(fields: [user_id], references: [id])
-  Wallet            Wallet     @relation(fields: [wallet_id], references: [id])
-  Draw              Draw       @relation(fields: [draw_id], references: [id])
+  User   User   @relation(fields: [user_id], references: [id])
+  Wallet Wallet @relation(fields: [wallet_id], references: [id])
+  Draw   Draw?  @relation(fields: [draw_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
-  @@index([draw_id])
   @@index([user_id])
   @@index([wallet_id])
+  @@index([draw_id])
   @@map("ticket_purchases")
 }
-
 model Draw {
   id           Int          @id @default(autoincrement())
   draw_code    String       @unique @db.VarChar(32)
@@ -104,7 +93,8 @@ model PrizeTier {
   prize_amount  Decimal      @db.Decimal(18, 2)
   winners_count Int
   DrawResult    DrawResult[]
-  draw          Draw         @relation(fields: [draw_id], references: [id])
+
+  draw          Draw         @relation(fields: [draw_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("prize_tiers")
 }
@@ -119,8 +109,9 @@ model DrawResult {
   ticket_number    String?   @db.VarChar(32)
   prize_amount     Decimal   @db.Decimal(18, 2)
   published_at     DateTime  @default(now())
-  draw             Draw      @relation(fields: [draw_id], references: [id])
-  prizeTier        PrizeTier @relation(fields: [prize_tier_id], references: [id])
+  // ⬇️ ใส่ Cascade ที่นี่
+  draw             Draw      @relation(fields: [draw_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  prizeTier        PrizeTier @relation(fields: [prize_tier_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([draw_id])
   @@index([prize_tier_id])
