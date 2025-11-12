@@ -68,11 +68,11 @@ export default function WalletPage() {
         {/* Quick Actions */}
         <section className="mt-5">
           <div className="grid grid-cols-3 gap-3 text-center">
-            <Link href="">
-              <Action icon={<ArrowDownCircle className="h-6 w-6" />} label="ฝากเงิน" />
+            <Link href="/wallet/deposit">
+               <Action icon={<ArrowDownCircle className="h-6 w-6" />} label="ฝากเงิน" />
             </Link>
-            <Link href="">
-              <Action icon={<ArrowUpCircle className="h-6 w-6" />} label="ถอนเงิน" />
+            <Link href="/wallet/withdraw">
+               <Action icon={<ArrowUpCircle className="h-6 w-6" />} label="ถอนเงิน" />
             </Link>
             <Link href="">
               <Action icon={<HistoryIcon className="h-6 w-6" />} label="ประวัติธุรกรรม" />
