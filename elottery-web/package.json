@@ -1,0 +1,34 @@
+{
+  "name": "elottery-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.901.0",
+    "@aws-sdk/client-sns": "^3.927.0",
+    "@prisma/client": "6.16.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "axios": "^1.12.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.544.0",
+    "next": "15.5.4",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "tailwind-merge": "^3.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "prisma": "^6.16.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
