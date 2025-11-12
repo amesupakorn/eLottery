@@ -5,6 +5,7 @@ import {
   InitiateAuthCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import crypto from "crypto";
+import { prisma } from "@/lib/prisma";
 
 const cognito = new CognitoIdentityProviderClient({
   region: process.env.COGNITO_REGION!,
@@ -45,7 +46,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
     }
 
-    const res = NextResponse.json({ message: "Login successful" });
+    const dbUser = await prisma.user.findUnique({ where: { email } });
+
+    const res = NextResponse.json({
+      message: "Login successful",
+      user: {
+        email,
+        name: dbUser?.full_name ?? null,
+        notify_opt: dbUser?.notify_opt ?? false,
+      },
+    });
     res.cookies.set("id_token", token.IdToken!, {
         httpOnly: true,
         secure: true,
@@ -53,6 +63,7 @@ export async function POST(req: NextRequest) {
         maxAge: token.ExpiresIn,
     });
     return res;
+    
   } catch (err: any) {
     const msg =
       err.name === "NotAuthorizedException"
