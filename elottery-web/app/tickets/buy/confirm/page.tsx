@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 import {
   ChevronLeft,
   Wallet,
@@ -18,14 +19,30 @@ const STEP = 1000;
 const UNIT_PRICE = 100; // หน่วยละ 100 บาท
 const DRAW_CODE = "624";
 
+
+function useDebounce(value: any, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+    setDebouncedValue(value);
+    }, delay);
+    return () => {
+    clearTimeout(handler);
+    };
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 export default function BuyTicketWalletPage() {
   const [amount, setAmount] = useState(MIN_AMOUNT);
-
   const totalUnits = Math.floor(amount / UNIT_PRICE);
-  const startNumber = "000000";
-  const endNumber = (totalUnits - 1)
-    .toString()
-    .padStart(6, "0");
+  const router = useRouter();
+  const [previewRange, setPreviewRange] = useState({
+    start: "...",
+    end: "...",
+  });
+  const [isLoadingRange, setIsLoadingRange] = useState(false);
+  const debouncedTotalUnits = useDebounce(totalUnits, 300);
 
   const formattedAmount = useMemo(
     () =>
@@ -55,16 +72,79 @@ export default function BuyTicketWalletPage() {
     const n = Number((e.target.value || "").replace(/[^\d]/g, ""));
     setAmount(n);
   };
+
   const dec = () => setAmount((v) => Math.max(MIN_AMOUNT, v - STEP));
   const inc = () => setAmount((v) => v + STEP);
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!canContinue) return;
-    alert(
-      `ยืนยันการซื้อสลาก\nยอดเงิน: ${formattedAmount}\nจำนวนหน่วย: ${totalUnits} หน่วย\nช่วงหมายเลข: ${startNumber} - ${endNumber}`
-    );
-  }
+  useEffect(() => {
+       if (debouncedTotalUnits > 0) {
+          setIsLoadingRange(true);
+      
+          async function fetchPreviewRange() {
+            try {
+               const res = await fetch(
+                 `/api/lottery/preview?drawCode=${DRAW_CODE}&quantity=${debouncedTotalUnits}`
+               );
+               if (!res.ok) throw new Error("Failed to fetch preview");
+
+               const data = await res.json(); // { rangeStart, rangeEnd }
+
+               setPreviewRange({
+                 start: data.rangeStart.toString().padStart(6, "0"),
+                 end: data.rangeEnd.toString().padStart(6, "0"),
+               });
+            } catch (error) {
+               console.error(error);
+               setPreviewRange({ start: "Error", end: "Error" });
+            } finally {
+               setIsLoadingRange(false);
+            }
+          }
+
+          fetchPreviewRange();
+       } else {
+          setPreviewRange({ start: "...", end: "..." });
+       }
+     }, [debouncedTotalUnits]);
+
+  async function handleSubmit(e: React.FormEvent) {
+      e.preventDefault();
+      if (!canContinue) return;
+
+      try {
+
+        const quantity = Math.floor(amount / UNIT_PRICE);
+        const payload = {
+          userId: 1, // mock user id
+          drawCode: DRAW_CODE, // คือ 624
+          quantity: quantity,
+        };
+
+        console.log("--- CLIENT SENDING PAYLOAD ---", payload);
+        const res = await fetch("/api/lottery/purchase", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(`❌ เกิดข้อผิดพลาด: ${data.error || "ไม่สามารถทำรายการได้"}`);
+          return;
+        }
+        
+
+        alert(
+        `✅ ซื้อสลากสำเร็จ\nยอดเงิน: ${formattedAmount}\nจำนวนหน่วย: ${quantity}\nช่วงหมายเลข: ${previewRange.start} - ${previewRange.end}\n\nรหัสคำสั่งซื้อ #${data.id}`
+         );
+        router.push('/tickets');
+      } catch (error) {
+        console.error(error);
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+      }
+    }
+
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900">
@@ -173,7 +253,10 @@ export default function BuyTicketWalletPage() {
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">ช่วงหมายเลข</span>
             <span className="font-mono font-semibold text-gray-900">
-              {startNumber} - {endNumber}
+              {isLoadingRange 
+              ? "กำลังโหลด..." 
+              : `${previewRange.start} - ${previewRange.end}`
+              }
             </span>
           </div>
           <p className="text-xs text-gray-500">
