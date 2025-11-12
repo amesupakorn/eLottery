@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { ArrowLeft, CheckCircle, ChevronLeft, Wallet } from "lucide-react";
 import Link from "next/link";
+import { useAlert } from "@/context/AlertContext";
 
 export default function DepositPage() {
   const [amount, setAmount] = useState("");
   const [step, setStep] = useState<"form" | "qr" | "success">("form");
   const [isLoading, setIsLoading] = useState(false);
   const [qrUrl, setQrUrl] = useState("");
+  const { setError, setSuccess } = useAlert();
 
   const quickAmounts = [500, 1000, 2000, 5000];
 
@@ -34,6 +36,8 @@ export default function DepositPage() {
       });
 
       if (!res.ok) throw new Error("ไม่สามารถฝากเงินได้");
+      
+      setSuccess("ถอนเงินสำเร็จ");
       setStep("success");
     } catch (err) {
       alert((err as Error).message);
@@ -46,13 +50,13 @@ export default function DepositPage() {
     <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900">
       <header className="sticky top-0 z-30 bg-gray-500/20 backdrop-blu">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center gap-2">
-           <Link href="/tickets" className="rounded-full p-2 -ml-2 hover:bg-gray-100 text-white hover:text-black">
+           <Link href="/wallet" className="rounded-full p-2 -ml-2 hover:bg-gray-100 text-white hover:text-black">
             <ChevronLeft className="h-5 w-5" />
           </Link>
           <h1 className="text-base font-semibold text-white">ฝากเงินเข้ากระเป๋า</h1>
         </div>
       </header>
-        {/* Step 1: Form */}
+
         <div className="mx-auto w-full max-w-md mt-12">
         {step === "form" && (
           <form

@@ -1,8 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowUpCircle, X, Banknote } from "lucide-react";
+import { ArrowUpCircle, X, Banknote, ChevronLeft } from "lucide-react";
 import axios from 'axios';
+import api from "@/lib/axios";
+import Link from "next/link";
+import { useAlert } from "@/context/AlertContext";
 
 const bankOptions = [
 	{ 
@@ -41,16 +44,13 @@ export default function WithdrawAmount() {
     const [currentBalance, setCurrentBalance] = useState(0);
 	const [amount, setAmount] = useState('');
 	const [paymentMethod, setPaymentMethod] = useState('');
+    const { setError, setSuccess } = useAlert();
     
     useEffect(() => {
         const fetchBalance = async () => {
             try {
-                // แก้ตรงนี้ๆๆๆๆๆๆ 
-                const response = await axios.get(`/api/wallet/withdraw/1`); 
-                // /api/wallet/withdraw/${id}
-                // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                const response = await api.get('/wallet')
                 setCurrentBalance(response.data.balance);
-                console.log('Current Balance:', response.data);
             }
             catch (error) {
                 console.error('Error fetching balance:', error);
@@ -63,37 +63,38 @@ export default function WithdrawAmount() {
     }, []);
 
 	const handleConfirm = async () => {
-    const postData = {
-        amount: Number(amount),
-        paymentMethod: paymentMethod,
+        const postData = {
+            amount: Number(amount),
+            paymentMethod: paymentMethod,
+        };
+
+        console.log('ข้อมูลการถอนเงิน:', postData);
+        try {
+            const response = await axios.post(`/api/wallet/withdraw`, postData); 
+            setCurrentBalance(response.data.balance);
+            setSuccess(`ถอนเงินสำเร็จจำนวน: ${amount}`);
+        } catch (error) {
+            setError('ถอนเงินไม่สำเร็จ');
+
+        }
+        setAmount('');
+        setPaymentMethod('');
     };
-
-    console.log('ข้อมูลการถอนเงิน:', postData);
-    try {
-        // แก้ตรงนี้ๆๆๆๆๆๆ 
-        const response = await axios.post(`/api/wallet/withdraw/1`, postData); 
-        // /api/wallet/withdraw/${id}
-        // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        setCurrentBalance(response.data.newBalance.balance);
-        console.log('Updated Wallet:', response.data);
-
-    } catch (error) {
-        console.error('Error withdraw:', error);
-
-    } finally {
-        console.log('withdraw attempt finished.');
-    }
-    setAmount('');
-    setPaymentMethod('');
-};
 
 	const isFormValid = amount && Number(amount) > 0 && Number(amount) <= currentBalance && paymentMethod;
 
 	return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-100">
-            <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl overflow-hidden">
-                
-
+        <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900">
+            <header className="sticky top-0 z-30 bg-gray-500/20 backdrop-blu">
+                <div className="mx-auto max-w-md px-4 py-3 flex items-center gap-2">
+                <Link href="/wallet" className="rounded-full p-2 -ml-2 hover:bg-gray-100 text-white hover:text-black">
+                    <ChevronLeft className="h-5 w-5" />
+                </Link>
+                <h1 className="text-base font-semibold text-white">ถอนเงินจากกระเป๋า</h1>
+                </div>
+            </header>
+            
+            <div className="mx-auto w-full max-w-md px-6 py-5 space-y-5 bg-white rounded-2xl mt-12">   
                 <div className="flex items-center gap-3">
                     <div className="flex-shrink-0 rounded-full bg-emerald-100 p-2 text-emerald-600">
                         <ArrowUpCircle size={24} />
@@ -133,7 +134,7 @@ export default function WithdrawAmount() {
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
                                 placeholder="ระบุจำนวนเงิน"
-                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-lg text-black pl-10"
+                                className="block w-full py-2 rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-lg text-black pl-10"
                             />
                         </div>
                         {amount && Number(amount) > currentBalance && (
@@ -156,7 +157,7 @@ export default function WithdrawAmount() {
                                         flex flex-col h-28 w-full items-center justify-center rounded-lg border p-2 text-center text-xs transition-all gap-2
                                         ${
                                             paymentMethod === bank.id
-                                            ? 'border-amber-500 bg-amber-50 ring-2 ring-offset-1 ring-amber-500 text-amber-800 font-semibold' 
+                                            ? 'border-emerald-500 bg-emerald-50 ring-2 ring-offset-1 ring-emerald-500 text-emerald-800 font-semibold' 
                                             : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50' 
                                         }
                                     `}
@@ -189,6 +190,6 @@ export default function WithdrawAmount() {
                     </button>
                 </div>
             </div>
-        </div>
+        </main>
 	);
 }

@@ -45,7 +45,6 @@ export async function POST(req: Request) {
       new: newBalance.toString(),
     });
 
-    // ✅ บันทึกธุรกรรม (Transaction)
     const transaction = await prisma.accountTransaction.create({
       data: {
         wallet_id: wallet.id,
@@ -57,7 +56,6 @@ export async function POST(req: Request) {
       },
     });
 
-    // ✅ อัปเดตยอด wallet
     const updatedWallet = await prisma.wallet.update({
       where: { id: wallet.id },
       data: {
