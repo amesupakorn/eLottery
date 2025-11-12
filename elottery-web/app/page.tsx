@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { useSearchParams } from "next/navigation";
 import WalletNotify from "@/components/WalletNotify"
+import Link from "next/link";
 export default function DashboardPage() {
   const { user, setUser } = useUser();
   const [showModal, setShowModal] = useState(false);
@@ -80,17 +81,32 @@ export default function DashboardPage() {
       <section className="mt-6 px-4">
         <div className="mx-auto w-full max-w-md rounded-2xl bg-white border border-gray-200 shadow-sm p-4">
           <h3 className="px-2 pb-2 text-sm font-medium text-gray-600">ทำรายการด่วน</h3>
+
           <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-            <Action icon={<PlusCircle className="h-6 w-6" />} label="ฝากเงิน" />
-            <Action icon={<Send className="h-6 w-6" />} label="โอนเงิน" />
-            <Action icon={<CreditCard className="h-6 w-6" />} label="สลากดิจิทัล" />
-            <Action icon={<Star className="h-6 w-6" />} label="เพิ่มเติม" />
+            <Link href="/wallet/deposit" className="block">
+              <Action icon={<PlusCircle className="h-6 w-6" />} label="ฝากเงิน" />
+            </Link>
+
+            <Link href="/wallet/withdraw" className="block">
+              <Action icon={<Send className="h-6 w-6" />} label="โอนเงิน" />
+            </Link>
+
+            <Link href="/tickets" className="block">
+              <Action icon={<CreditCard className="h-6 w-6" />} label="สลากดิจิทัล" />
+            </Link>
+
+            <button
+              className="w-full"
+              onClick={() => alert("Coming soon!")}
+            >
+              <Action icon={<Star className="h-6 w-6" />} label="เพิ่มเติม" />
+            </button>
           </div>
         </div>
       </section>
 
       {/* Notice */}
-      <section className="px-4 mt-6">
+      {/* <section className="px-4 mt-6">
         <div className="mx-auto w-full max-w-md rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 h-2 w-2 rounded-full bg-amber-500" />
@@ -105,7 +121,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Footer */}
       <footer className="py-8 text-center text-xs text-gray-400">
@@ -117,13 +133,14 @@ export default function DashboardPage() {
 
 function Action({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <button
-      className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white p-3 shadow-sm hover:shadow transition
-                 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+    <div
+      className="flex flex-col items-center justify-center w-full h-full
+                 bg-white rounded-xl border border-gray-200 shadow-sm
+                 hover:shadow-md hover:bg-emerald-50 transition py-4"
     >
-      <span className="text-amber-600 group-hover:text-amber-700 transition">{icon}</span>
-      <span className="text-[11px] font-medium text-gray-700">{label}</span>
-    </button>
+      <div className="text-amber-500">{icon}</div>
+      <span className="mt-2 text-xs font-medium text-gray-700">{label}</span>
+    </div>
   );
 }
 
