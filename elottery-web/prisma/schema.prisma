@@ -8,15 +8,16 @@ datasource db {
 }
 
 model User {
-  id          Int        @id @default(autoincrement())
-  email       String?    @unique @db.VarChar(255)
-  full_name   String?    @db.VarChar(255)
-  status      UserStatus @default(ACTIVE)
-  created_at  DateTime   @default(now())
-  cognito_sub String?    @unique
+  id          Int         @id @default(autoincrement())
+  email       String?     @unique @db.VarChar(255)
+  full_name   String?     @db.VarChar(255)
+  status      UserStatus  @default(ACTIVE)
+  created_at  DateTime    @default(now())
+  cognito_sub String?     @unique
   Wallet      Wallet?
-
+  notify_opt  Boolean?    @default(false)
   @@map("users")
+  ticketPurchases TicketPurchase[]
 }
 
 model Wallet {
@@ -30,6 +31,7 @@ model Wallet {
   user       User                 @relation(fields: [user_id], references: [id])
 
   @@map("wallets")
+  ticketPurchases TicketPurchase[]
 }
 
 model AccountTransaction {
@@ -50,28 +52,33 @@ model AccountTransaction {
 
 /// ===== Ticket (running number table) =====
 model Ticket {
-  name       String   @id @db.VarChar(32)
-  prefix     String   @db.VarChar(8)
-  period     String   @db.Char(4)
-  last_no    Int
-  width      Int
-  updated_at DateTime @default(now())
+  name         String   @id @db.VarChar(32)
+  range_start  Int                              // เลขเริ่มต้นของชุดสลาก
+  range_end    Int                              // เลขสุดท้ายของชุดสลาก
+  width        Int
+  updated_at   DateTime @default(now())
 
   @@map("ticket")
 }
-
-/// ===== Ticket Purchases =====
+/* ===== Ticket Purchases ===== */
 model TicketPurchase {
-  id            Int                  @id @default(autoincrement())
-  ticket_number String               @db.VarChar(32)
-  unit_price    Decimal              @db.Decimal(18, 2)
-  total_price   Decimal              @db.Decimal(18, 2)
-  status        TicketPurchaseStatus
-  user_id       Int
-  wallet_id     Int
-  draw_id       Int
+  id                Int       @id @default(autoincrement())
+  range_start       Int       // เลขเริ่มต้นของช่วงสลาก
+  range_end         Int       // เลขสุดท้ายของช่วงสลาก
+  unit_price        Decimal   @db.Decimal(18, 2)
+  total_price       Decimal   @db.Decimal(18, 2)
+  status            TicketPurchaseStatus 
 
-  @@index([draw_id, ticket_number])
+  user_id           Int
+  wallet_id         Int
+  draw_id           Int        // งวดที่สลากนี้ร่วมลุ้น
+  purchased_at      DateTime   @default(now()) // วันเวลาที่ซื้อ
+
+  User              User       @relation(fields: [user_id], references: [id])
+  Wallet            Wallet     @relation(fields: [wallet_id], references: [id])
+  Draw              Draw       @relation(fields: [draw_id], references: [id])
+
+  @@index([draw_id])
   @@index([user_id])
   @@index([wallet_id])
   @@map("ticket_purchases")
@@ -87,6 +94,7 @@ model Draw {
   prizeTiers   PrizeTier[]
 
   @@map("draws")
+  ticketPurchases TicketPurchase[]
 }
 
 model PrizeTier {

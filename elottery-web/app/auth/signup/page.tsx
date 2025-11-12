@@ -57,10 +57,13 @@ export default function SignupPage() {
     }
 
     try {
-      await api.post("/auth/signup", form);
+      const res = await api.post("/auth/signup", form);
       setSuccess("Signup successful! Please check your email to confirm.");
+      const email = res.data?.email;
       setTimeout(() => {
-        router.push("/auth/signin"); 
+        if (email) {
+          router.push(`/auth/confirm_email?email=${encodeURIComponent(email)}`);
+        }
       }, 800);
     } catch (err: any) {
       setError(err.response?.data?.error || "Signup failed");

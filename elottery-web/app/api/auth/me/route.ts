@@ -10,5 +10,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Token expired" }, { status: 401 });
   }
 
-  return NextResponse.json({ user: decoded });
+  return NextResponse.json({ decoded });
 }
