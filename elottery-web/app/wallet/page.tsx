@@ -37,7 +37,7 @@ export default function WalletPage() {
             <Link href="">
                <Action icon={<ArrowDownCircle className="h-6 w-6" />} label="ฝากเงิน" />
             </Link>
-            <Link href="">
+            <Link href="/wallet/withdraw">
                <Action icon={<ArrowUpCircle className="h-6 w-6" />} label="ถอนเงิน" />
             </Link>
             <Link href="">
