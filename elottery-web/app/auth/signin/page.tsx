@@ -5,12 +5,14 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react"
 import { useAlert } from "@/context/AlertContext";
 import api from "@/lib/axios";
+import { useUser } from "@/context/UserContext";
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPwd, setShowPwd] = useState(false);
   const { setError, setSuccess } = useAlert();
   const [isLoading, setIsLoading] = useState(false);
+  const { setUser } = useUser();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
@@ -34,10 +36,10 @@ export default function LoginPage() {
     }
 
     try {
-      await api.post("/auth/login", form);
+      const res = await api.post("/auth/signin", form);
       setSuccess("Login successful! Redirecting to home...");
       setTimeout(() => {
-        window.location.href = "/";
+        window.location.href = `/?notify_opt=${res.data.user.notify_opt}`;
       }, 800);
     } catch (err: any) {
       setError(err.response?.data?.error || "An error occurred during login.");
@@ -115,7 +117,7 @@ export default function LoginPage() {
                 ${isLoading ? "bg-amber-400 cursor-not-allowed" : "bg-amber-500 hover:bg-amber-600"}
                 text-white py-2`}
             >
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : "Sign Up"}
+              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : "Login"}
             </button>
           </form>
 
