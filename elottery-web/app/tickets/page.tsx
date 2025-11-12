@@ -17,7 +17,7 @@ export default function TicketPage() {
             <div className="flex items-center justify-between">
               <div className="inline-flex items-center gap-2 bg-white/25 backdrop-blur px-2 py-1 rounded-full text-xs">
                 <Eye className="h-4 w-4" />
-                <span>4000xxxx3961</span>
+                <span>บัญชีกระเป๋าสลาก</span>
               </div>
               <span className="text-sm opacity-90">สลากดิจิทัล</span>
             </div>
@@ -41,7 +41,7 @@ export default function TicketPage() {
             <Link href="/tickets/product" className="w-full h-full">
               <Action icon={<Search className="h-6 w-6" />} label="ข้อมูลผลิตภัณฑ์" />
             </Link>
-            <Link href="/tickets/product" className="w-full h-full">
+            <Link href="/history" className="w-full h-full">
               <Action icon={<History className="h-6 w-6" />} label="ประวัติการถอน" />
             </Link>
           </div>

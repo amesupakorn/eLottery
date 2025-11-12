@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import type { LedgerItem, TicketItem } from "@/types/history";
+import api from "@/lib/axios";
 
 export default function HistoryPage() {
   const [tab, setTab] = useState<"ledger" | "tickets">("ledger");
@@ -38,32 +39,22 @@ export default function HistoryPage() {
 
         {/* Filters */}
         <div className="mt-4 grid grid-cols-1 gap-2">
-          <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2">
-            <Search className="h-4 w-4 text-gray-500" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={tab === "ledger" ? "ค้นหาโน้ต / ประเภทธุรกรรม" : "ค้นหาหมายเลขสลาก / ผลิตภัณฑ์"}
-              className="w-full bg-transparent text-sm outline-none"
-            />
-          </div>
           <div className="grid grid-cols-2 gap-2">
             <input
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500"
+              className="rounded-xl border text-gray-500 border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500"
             />
             <input
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500"
+              className="rounded-xl border text-gray-500 border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
         </div>
 
-        {/* ✅ แสดงรายการตามแท็บ */}
         <section className="mt-4">
           {tab === "ledger" ? (
             <LedgerList q={q} from={from} to={to} />
@@ -78,33 +69,24 @@ export default function HistoryPage() {
 
 /* ---------------- Components ---------------- */
 
-// เดินบัญชี (เชื่อม /api/history/transactions)
 function LedgerList({ q, from, to }: { q: string; from: string; to: string }) {
   const [serverItems, setServerItems] = useState<LedgerItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // WITHDRAWAL (DB) -> WITHDRAW (UI เดิม)
-  const mapEntryTypeToUi = (t: string): LedgerItem["type"] => {
-    if (t === "WITHDRAWAL") return "WITHDRAW";
-    return t as LedgerItem["type"];
-  };
-
   useEffect(() => {
     const u = new URL("/api/history/transactions", window.location.origin);
-    u.searchParams.set("userId", "1001"); // user จำลอง
-    if (q?.trim()) u.searchParams.set("q", q.trim());
     if (from) u.searchParams.set("from", from);
     if (to) u.searchParams.set("to", to);
 
     setLoading(true);
+
     fetch(u.toString())
       .then((r) => r.json())
       .then((data) => {
-        // รองรับทั้งรูป `{ items }` และรูป `{ transactions }` ถ้าเผลอใช้โค้ดเก่า
-        const txs = (data.items ?? data.transactions ?? []) as Array<{
+        const txs = (data.items ?? []) as Array<{
           id: number | string;
-          entry_type?: string; // ในบาง API
-          type?: string;       // เผื่อ map มาแล้ว
+          entry_type?: string;
+          type?: string;
           amount: number | string;
           note?: string | null;
           occurredAt?: string;
@@ -112,33 +94,30 @@ function LedgerList({ q, from, to }: { q: string; from: string; to: string }) {
           direction?: "CREDIT" | "DEBIT";
         }>;
 
-        const mapped: LedgerItem[] = txs.map((t) => {
+        const mapped = txs.map((t) => {
           const entry = (t.type ?? t.entry_type ?? "DEPOSIT") as string;
-          const amountNumber =
-            typeof t.amount === "string" ? Number(t.amount) : (t.amount ?? 0);
-          // ถ้ามี direction ให้ +/- ตามนั้น แต่ถ้า API ส่งมาเป็น amount พร้อมเครื่องหมายแล้ว ก็ใช้ตามเดิม
+          const amountNum =
+            typeof t.amount === "string" ? Number(t.amount) : t.amount ?? 0;
           const signed =
-            t.direction
-              ? t.direction === "CREDIT"
-                ? Math.abs(amountNumber)
-                : -Math.abs(amountNumber)
-              : amountNumber;
+            t.direction === "CREDIT"
+              ? Math.abs(amountNum)
+              : -Math.abs(amountNum);
 
           return {
             id: String(t.id),
-            type: mapEntryTypeToUi(entry),
+            type: entry === "WITHDRAWAL" ? "WITHDRAW" : (entry as any),
             amount: signed,
             note: t.note ?? undefined,
-            occurredAt: (t.occurredAt ?? t.occurred_at ?? new Date().toISOString()) as string,
+            occurredAt: (t.occurredAt ??
+              t.occurred_at ??
+              new Date().toISOString()) as string,
           };
         });
 
         setServerItems(mapped);
       })
       .finally(() => setLoading(false));
-  }, [q, from, to]);
-
-  // กรองฝั่ง client ให้พฤติกรรมเหมือนตอนใช้ mock
+  }, [from, to]);
   const items = useMemo(() => {
     const f = (it: LedgerItem) => {
       const inRange =
@@ -193,15 +172,12 @@ function LedgerList({ q, from, to }: { q: string; from: string; to: string }) {
   );
 }
 
-// สลากดิจิทัล (เชื่อม /api/history/tickets)
 function TicketList({ q, from, to }: { q: string; from: string; to: string }) {
   const [items, setItems] = useState<TicketItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const u = new URL("/api/history/tickets", window.location.origin);
-    u.searchParams.set("userId", "1001"); // user จำลอง
-    if (q?.trim()) u.searchParams.set("q", q.trim());
     if (from) u.searchParams.set("from", from);
     if (to) u.searchParams.set("to", to);
 
@@ -210,9 +186,8 @@ function TicketList({ q, from, to }: { q: string; from: string; to: string }) {
       .then((r) => r.json())
       .then((data) => setItems(data.items ?? []))
       .finally(() => setLoading(false));
-  }, [q, from, to]);
+  }, [from, to]);
 
-  // กรองฝั่ง client แบบเดิม
   const filtered = useMemo(() => {
     const f = (it: TicketItem) => {
       const inRange =
@@ -227,7 +202,7 @@ function TicketList({ q, from, to }: { q: string; from: string; to: string }) {
       return inRange && match;
     };
     return items.filter(f);
-  }, [items, q, from, to]);
+  }, [items, from, to]);
 
   if (loading) {
     return <EmptyCard icon={<TicketIcon className="h-8 w-8 text-gray-400" />} title="กำลังโหลดสลาก" note="ดึงข้อมูลจากฐานข้อมูล..." />;

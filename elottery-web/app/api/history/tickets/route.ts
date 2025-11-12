@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma";
+import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
 
-    const userId = Number(searchParams.get("userId") ?? "1001");
-    const q = (searchParams.get("q") ?? "").trim();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const from = searchParams.get("from"); // YYYY-MM-DD
     const to   = searchParams.get("to");   // YYYY-MM-DD
 
-    // 1) ดึงรายการซื้อสลากของผู้ใช้ (ไม่มี include เพราะไม่ได้ประกาศ relation ใน schema)
     const purchases = await prisma.ticketPurchase.findMany({
       where: {
-        user_id: userId,
-        ...(q
-          ? { ticket_number: { contains: q } }
-          : {}),
+        user_id: user.id,
       },
       orderBy: { id: "desc" },
     });
@@ -67,13 +67,7 @@ export async function GET(req: NextRequest) {
       const t = new Date(it.purchasedAt).getTime();
       const okFrom = from ? t >= new Date(`${from}T00:00:00`).getTime() : true;
       const okTo   = to   ? t <= new Date(`${to}T23:59:59.999`).getTime() : true;
-      const kw = q.toLowerCase();
-      const okQ =
-        !kw ||
-        it.ticketNumber.includes(kw) ||
-        it.product.toLowerCase().includes(kw) ||
-        it.status.toLowerCase().includes(kw);
-      return okFrom && okTo && okQ;
+      return okFrom && okTo;
     });
 
     return NextResponse.json({ items });
