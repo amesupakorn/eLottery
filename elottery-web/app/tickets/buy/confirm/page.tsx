@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/axios";
 import { useAlert } from "@/context/AlertContext";
+import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 
 const MIN_AMOUNT = 1000;
 const STEP = 1000;
@@ -129,42 +130,72 @@ export default function BuyTicketWalletPage() {
      }, [debouncedTotalUnits]);
 
   async function handleSubmit(e: React.FormEvent) {
-      e.preventDefault();
-      if (!canContinue) return;
+    e.preventDefault();
+    if (!canContinue) return;
 
-      try {
+    try {
+      const quantity = Math.floor(amount / UNIT_PRICE);
+      const payload = {
+        drawCode: drawCode,
+        quantity: quantity,
+      };
 
-        const quantity = Math.floor(amount / UNIT_PRICE);
-        const payload = {
-          drawCode: drawCode,
-          quantity: quantity,
-        };
+      console.log("--- CLIENT SENDING PAYLOAD ---", payload);
 
-        console.log("--- CLIENT SENDING PAYLOAD ---", payload);
-        const res = await fetch("/api/lottery/purchase", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+      const res = await fetch("/api/lottery/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-        const data = await res.json();
+      const purchase = await res.json();
 
-        if (!res.ok) {
-          setError(`เกิดข้อผิดพลาด: ${data.error || "ไม่สามารถทำรายการได้"}`);
-          return;
-        }
-        
-
-        setSuccess(
-        `ซื้อสลากสำเร็จ\nยอดเงิน: ${formattedAmount}\nจำนวนหน่วย: ${quantity}\nช่วงหมายเลข: ${previewRange.start} - ${previewRange.end}\n\nรหัสคำสั่งซื้อ #${data.id}`
-         );
-        router.push('/tickets');
-      } catch (error) {
-        console.error(error);
-        alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+      if (!res.ok) {
+        setError(`เกิดข้อผิดพลาด: ${purchase.message || "ไม่สามารถทำรายการได้"}`);
+        return;
       }
-    }
 
+      console.log("--- PURCHASE SUCCESS ---", purchase);
+      
+      const user = await getCurrentUser();
+      // 🔹 STEP 2: สร้างใบเสร็จ (PDF) จากข้อมูลการซื้อจริง
+      const pdfRes = await fetch("/api/receipts/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          receiptId: `RCPT-${purchase.id ?? Date.now()}`,
+          drawCode: drawCode,
+          productName: "สลากดิจิทัล 1 ปี",
+          quantity: quantity,
+          unitPrice: UNIT_PRICE,
+          rangeStart: purchase.range_start,
+          rangeEnd: purchase.range_end,
+          buyerName: user?.full_name,
+          buyerEmail: user?.email,
+          verifyUrl: `${window.location.origin}/verify/${purchase.id}`,
+        }),
+      });
+
+      const pdfData = await pdfRes.json();
+
+      if (pdfRes.ok && pdfData.downloadUrl) {
+        window.open(pdfData.downloadUrl, "_blank");
+      } else {
+        console.error("PDF generation error:", pdfData.error);
+      }
+
+      // 🔹 STEP 3: แสดงข้อความสำเร็จ
+      setSuccess(
+        `✅ ซื้อสลากสำเร็จ\nยอดเงิน: ${formattedAmount}\nจำนวนหน่วย: ${quantity}\nช่วงหมายเลข: ${purchase.range_start} - ${purchase.range_end}\n\nรหัสคำสั่งซื้อ #${purchase.id}`
+      );
+
+      // ✅ กลับไปหน้ารายการสลาก
+      router.push("/tickets");
+    } catch (error) {
+      console.error(error);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    }
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900">

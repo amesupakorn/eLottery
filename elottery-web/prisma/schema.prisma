@@ -60,13 +60,16 @@ model TicketPurchase {
   status       TicketPurchaseStatus
   user_id      Int
   wallet_id    Int
-  draw_id      Int?      // ← ตอนนี้เป็น optional
-
+  draw_id      Int?
   purchased_at DateTime  @default(now())
+
+  receipt_s3_key   String?        @db.VarChar(512)
+  manifest_s3_key  String?        @db.VarChar(512)
+  artifacts        Json?         
 
   User   User   @relation(fields: [user_id], references: [id])
   Wallet Wallet @relation(fields: [wallet_id], references: [id])
-  Draw   Draw?  @relation(fields: [draw_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  Draw   Draw?  @relation(fields: [draw_id], references: [id])
 
   @@index([user_id])
   @@index([wallet_id])
