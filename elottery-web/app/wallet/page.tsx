@@ -5,13 +5,13 @@ import {
   Wallet as WalletIcon,
   ArrowDownCircle,
   ArrowUpCircle,
-  History as HistoryIcon, // 👈 ป้องกันชนกับ window.History
+  History as HistoryIcon,
   Eye,
 } from "lucide-react";
 import Link from "next/link";
+import api from "@/lib/axios";
 
 function formatMoneyTHB(n: number, currency = "THB") {
-  // แสดง "฿ 1,234.00" แบบเดิม
   const symbol = currency === "THB" ? "฿" : "";
   return `${symbol} ${n.toLocaleString(undefined, {
     minimumFractionDigits: 2,
@@ -26,17 +26,20 @@ export default function WalletPage() {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const u = new URL("/api/wallet", window.location.origin);
-    u.searchParams.set("userId", "1001"); // เปลี่ยนเป็น user จริงตามระบบ auth ได้ภายหลัง
+    const fetchWallet = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get("/wallet");
+        setBalance(Number(res.data.balance ?? 0));
+        setCurrency(String(res.data.currency ?? "THB"));
+      } catch (err) {
+        console.error("Error fetching wallet:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setLoading(true);
-    fetch(u.toString())
-      .then((r) => r.json())
-      .then((data) => {
-        setBalance(Number(data.balance ?? 0));
-        setCurrency(String(data.currency ?? "THB"));
-      })
-      .finally(() => setLoading(false));
+    fetchWallet();
   }, []);
 
   return (

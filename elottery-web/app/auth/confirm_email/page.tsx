@@ -117,13 +117,17 @@ export default function ConfirmEmailPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full py-3 rounded-xl items-center justify-center text-white font-semibold transition duration-300 ${
+              className={`w-full py-3 rounded-xl flex items-center justify-center text-white font-semibold transition duration-300 ${
                 isLoading
                   ? "bg-zinc-700 cursor-not-allowed"
                   : "bg-zinc-900 hover:bg-zinc-800"
               }`}
             >
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/>  : "Confirm Email"}
+              {isLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-white" />
+              ) : (
+                "Confirm Email"
+              )}
             </button>
           </form>
 

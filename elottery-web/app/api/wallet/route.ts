@@ -1,17 +1,24 @@
-// app/api/wallet/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = Number(searchParams.get("userId") ?? "1001");
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const wallet = await prisma.wallet.findUnique({
-      where: { user_id: userId },
+      where: { user_id: user.id },
     });
 
     return NextResponse.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.full_name,
+      },
       balance: wallet ? Number(wallet.balance) : 0,
       currency: wallet?.currency ?? "THB",
     });

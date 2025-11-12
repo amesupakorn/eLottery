@@ -4,24 +4,35 @@ import { signUpUser } from "@/lib/cognito";
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password } = await req.json();
+      const { name, email, password } = await req.json();
 
-    if (!email || !password || !name) {
-      return NextResponse.json(
-        { error: "Name, email, and password are required" },
-        { status: 400 }
-      );
-    }
+      if (!email || !password || !name) {
+        return NextResponse.json(
+          { error: "Name, email, and password are required" },
+          { status: 400 }
+        );
+      }
 
-    const response = await signUpUser({ email, password, name });
+      const response = await signUpUser({ email, password, name });
 
-    await prisma.user.create({
-      data: {
-        email,
-        full_name: name,
-        cognito_sub: response.UserSub,
-      },
-    });
+      const user = await prisma.user.create({
+        data: {
+          email,
+          full_name: name,
+          cognito_sub: response.UserSub,
+        },
+      });
+
+     
+      await prisma.wallet.upsert({
+        where: { user_id: user.id },  
+        update: {},
+        create: {
+          user_id: user.id,
+          currency: "THB",
+        },
+      });
+
 
     return NextResponse.json(
       {
