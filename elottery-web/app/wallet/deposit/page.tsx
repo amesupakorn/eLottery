@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowLeft, CheckCircle, ChevronLeft, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useAlert } from "@/context/AlertContext";
+import axios from "axios";
 
 export default function DepositPage() {
   const [amount, setAmount] = useState("");
@@ -29,15 +30,8 @@ export default function DepositPage() {
   const handleConfirmPayment = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/wallet/deposit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: parseFloat(amount) }),
-      });
-
-      if (!res.ok) throw new Error("ไม่สามารถฝากเงินได้");
-      
-      setSuccess("ถอนเงินสำเร็จ");
+      const res = await axios.post("/api/wallet/deposit", JSON.stringify({ amount: parseFloat(amount)}));      
+      setSuccess(`ฝากเงินสำเร็จจำนวน: ${res.data.amount}`);
       setStep("success");
     } catch (err) {
       alert((err as Error).message);

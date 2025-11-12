@@ -71,6 +71,7 @@ export async function POST(req: Request) {
       newBalance: newBalance.toString(),
       wallet: updatedWallet,
       transaction,
+      amount: amount,
     });
   } catch (error) {
     console.error("❌ Deposit error:", error);
