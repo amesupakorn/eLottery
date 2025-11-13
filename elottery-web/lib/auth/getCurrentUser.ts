@@ -18,7 +18,6 @@ export async function requireCurrentUser() {
   const user = await getCurrentUser();
   if (!user) {
     const err = new Error("Unauthorized");
-    err.status = 401;
     throw err;
   }
   return user;

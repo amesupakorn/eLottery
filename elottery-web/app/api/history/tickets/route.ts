@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ⭐ Map → UI payload
-    const rawItems = purchases.map((p: { draw_id: unknown; id: number; status: string; range_start: any; range_end: any; total_price: any; purchased_at: any; Receipt: { receipt_id: any; }; }) => {
+    const rawItems = purchases.map((p:any) => {
       const d = p.draw_id != null ? drawById.get(p.draw_id) : undefined;
       const isWin = winByPurchaseId.has(p.id);
       const status: "OWNED" | "CANCELED" | "WIN" =

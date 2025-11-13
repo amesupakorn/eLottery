@@ -1,72 +1,137 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentDraw } from "@/lib/draw_ticket/draw";
+import { Decimal } from "@prisma/client/runtime/library"; 
 
 export const runtime = "nodejs";
 
 export async function POST(_req: NextRequest) {
-  const Decimal = prisma.$extends({}).Decimal;
+  // 1) โหลด draw ปัจจุบัน
   const draw = await getCurrentDraw();
-  if (!draw) return NextResponse.json({ error: "No current draw" }, { status: 404 });
-  if (draw.status !== "DRAWING") {
-    return NextResponse.json({ error: `Invalid status: ${draw.status}` }, { status: 400 });
+  if (!draw) {
+    return NextResponse.json({ error: "No current draw" }, { status: 404 });
   }
+
+  if (draw.status !== "DRAWING") {
+    return NextResponse.json(
+      { error: `Invalid status: ${draw.status}, must be DRAWING` },
+      { status: 400 }
+    );
+  }
+
   if (!draw.results || draw.results.length === 0) {
     return NextResponse.json({ error: "No results to publish" }, { status: 400 });
   }
 
+  // 2) ดึงเลขสลากที่ถูกรางวัลเป็น number[]
   const winningNumbers = draw.results
-    .map((r: { ticket_number: any; }) => r.ticket_number!)
-    .filter(Boolean) as string[];
+    .map((r: { ticket_number: any; }) => Number(r.ticket_number))
+    .filter((n: number) => !isNaN(n));
 
+  if (!winningNumbers.length) {
+    return NextResponse.json({ error: "No valid winning numbers" }, { status: 400 });
+  }
+
+  // 3) หา TicketPurchase ที่ช่วงเลขครอบ winningNumbers (ใช้ range_start / range_end)
   const winners = await prisma.ticketPurchase.findMany({
     where: {
       draw_id: draw.id,
       status: "OWNED",
-      ticket_number: { in: winningNumbers },
+      OR: winningNumbers.map((num: any) => ({
+        range_start: { lte: num },
+        range_end: { gte: num },
+      })),
     },
-    select: { id: true, user_id: true, wallet_id: true, ticket_number: true },
+    select: {
+      id: true,
+      user_id: true,
+      wallet_id: true,
+      range_start: true,
+      range_end: true,
+    },
   });
-  const byNumber = new Map<string, typeof winners[number]>();
-  winners.forEach((w: { ticket_number: string; }) => byNumber.set(w.ticket_number, w));
 
-  await prisma.$transaction(async (tx: { wallet: { findUnique: (arg0: { where: { id: any; }; }) => any; update: (arg0: { where: { id: any; }; data: { balance: any; updated_at: Date; }; }) => any; }; accountTransaction: { create: (arg0: { data: { wallet_id: any; entry_type: string; ref_code: string; amount: any; direction: string; balance_after: any; occurred_at: Date; note: string; }; }) => any; }; drawResult: { update: (arg0: { where: { id: any; }; data: { user_id: any; purchase_item_id: any; }; }) => any; }; draw: { update: (arg0: { where: { id: any; }; data: { status: any; }; }) => any; }; }) => {
+  if (!winners.length) {
+    // ไม่มีคนถูกรางวัลเลย แต่ก็เปลี่ยนเป็น PUBLISHED ได้
+    await prisma.draw.update({
+      where: { id: draw.id },
+      data: { status: "PUBLISHED" },
+    });
+
+    return NextResponse.json({
+      message: "Published (no winners)",
+      drawId: draw.id,
+    });
+  }
+
+  // เอาไว้หาว่าตั๋วไหนครอบเลขรางวัล
+  const winnerList = winners;
+
+  // 4) จ่ายเงินและอัปเดต drawResult + wallet ภายใน transaction
+  await prisma.$transaction(async (tx:any) => {
     for (const r of draw.results) {
-      if (!r.ticket_number) continue;
-      const matched = byNumber.get(r.ticket_number);
-      if (!matched) continue;
+      const winNum = Number(r.ticket_number);
+      if (isNaN(winNum)) continue;
 
-      const wallet = await tx.wallet.findUnique({ where: { id: matched.wallet_id } });
+      // หา purchase ที่ช่วงเลขครอบ winNum
+      const purchase = winnerList.find(
+        (p: { range_start: number; range_end: number; }) => p.range_start <= winNum && p.range_end >= winNum
+      );
+      if (!purchase) continue;
+
+      // โหลด wallet
+      const wallet = await tx.wallet.findUnique({
+        where: { id: purchase.wallet_id },
+      });
       if (!wallet) continue;
 
-      const newBalance = new Decimal(wallet.balance).add(new Decimal(r.prize_amount));
+      // ใช้ Prisma.Decimal แบบถูกต้อง
+      const current = new Decimal(wallet.balance);
+      const prize = new Decimal(r.prize_amount);
+      const newBalance = current.add(prize);
 
+      // สร้าง AccountTransaction โดยใช้ relation wallet แทน wallet_id ตรง ๆ
       await tx.accountTransaction.create({
         data: {
-          wallet_id: matched.wallet_id,
+          wallet: { connect: { id: wallet.id } },
           entry_type: "PRIZE",
-          ref_code: `DRAW-${draw.id}`,
-          amount: r.prize_amount,
           direction: "CREDIT",
+          amount: prize,
           balance_after: newBalance,
+          ref_code: `PRIZE-${draw.draw_code}`,
+          note: `Prize for ticket number ${r.ticket_number}`,
           occurred_at: new Date(),
-          note: `Prize for ${r.ticket_number}`,
         },
       });
 
+      // อัปเดตยอด wallet
       await tx.wallet.update({
-        where: { id: matched.wallet_id },
-        data: { balance: newBalance, updated_at: new Date() },
+        where: { id: wallet.id },
+        data: {
+          balance: newBalance,
+          updated_at: new Date(),
+        },
       });
 
+      // ผูกผลรางวัลกับ user + ticketPurchase
       await tx.drawResult.update({
         where: { id: r.id },
-        data: { user_id: matched.user_id, purchase_item_id: matched.id },
+        data: {
+          user_id: purchase.user_id,
+          purchase_item_id: purchase.id,
+        },
       });
     }
 
-    await tx.draw.update({ where: { id: draw.id }, data: { status: "PUBLISHED" } });
+    // เปลี่ยนสถานะ draw เป็น PUBLISHED
+    await tx.draw.update({
+      where: { id: draw.id },
+      data: { status: "PUBLISHED" }, // ใช้ string ตรง ๆ เลี่ยง enum export ปลอม
+    });
   });
 
-  return NextResponse.json({ message: "Published", drawId: draw.id });
+  return NextResponse.json({
+    message: "Published",
+    drawId: draw.id,
+  });
 }

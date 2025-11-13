@@ -13,4 +13,5 @@ export type TicketItem = {
   status: "OWNED" | "CANCELED" | "WIN";
   price: number;
   purchasedAt: string;
+  receiptId?: string | null;  
 };

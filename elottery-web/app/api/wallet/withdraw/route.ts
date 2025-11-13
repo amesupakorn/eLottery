@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
     const after = current.minus(amt);
 
-    const result = await prisma.$transaction(async (tx: { accountTransaction: { create: (arg0: { data: { wallet_id: any; entry_type: string; direction: string; amount: Decimal; balance_after: Decimal; note: string; }; }) => any; }; wallet: { update: (arg0: { where: { id: any; }; data: { balance: Decimal; updated_at: Date; }; }) => any; }; }) => {
+    const result = await prisma.$transaction(async (tx:any) => {
       const trx = await tx.accountTransaction.create({
         data: {
           wallet_id: wallet.id,           

@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     const totalPrice = new Decimal(quantity).times(UNIT_PRICE);
 
     // 4) ทำทุกอย่างใน transaction เพื่อกัน race condition
-    const purchaseResult = await prisma.$transaction(async (tx: { wallet: { findUnique: (arg0: { where: { user_id: any; }; }) => any; update: (arg0: { where: { id: any; }; data: { balance: Decimal; updated_at: Date; }; }) => any; }; ticketPurchase: { findFirst: (arg0: { where: { draw_id: any; }; orderBy: { range_end: string; }; select: { range_end: boolean; }; }) => any; create: (arg0: { data: { range_start: any; range_end: number; unit_price: Decimal; total_price: Decimal; status: string; user_id: any; wallet_id: any; draw_id: any; purchased_at: Date; }; }) => any; }; accountTransaction: { create: (arg0: { data: { wallet_id: any; entry_type: string; amount: Decimal; direction: string; balance_after: Decimal; ref_code: string; note: string; }; }) => any; }; }) => {
+    const purchaseResult = await prisma.$transaction(async (tx:any) => {
       // 4.1) หา wallet ของ user
       const wallet = await tx.wallet.findUnique({
         where: { user_id: user.id },
