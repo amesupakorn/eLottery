@@ -2,44 +2,86 @@
 const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
 
 const REGION = process.env.AWS_REGION || "us-east-1";
-const TOPIC_ARN =
-  process.env.SNS_PRIZE_TOPIC_ARN
+const TOPIC_ARN = process.env.TOPIC_ARN;
 
 const sns = new SNSClient({ region: REGION });
 
 exports.handler = async (event) => {
-  console.log("EVENT:", JSON.stringify(event));
+  console.log("RAW EVENT:", JSON.stringify(event, null, 2));
 
   try {
-    const body =
-      typeof event.body === "string" ? JSON.parse(event.body) : event.body || {};
 
-    const { drawId, drawCode, productName, winners } = body;
+    let body;
+    if (event.body) {
+      try {
+        body =
+          typeof event.body === "string"
+            ? JSON.parse(event.body)
+            : event.body;
+      } catch (e) {
+        console.error("JSON parse error:", e);
+        body = {};
+      }
+    } else {
+        body = event || {};
+    }
 
-    // สร้างข้อความให้อ่านง่ายหน่อย
-    const subject = `แจ้งผลออกรางวัล eLottery งวด ${drawCode || drawId}`;
+    console.log("PARSED BODY:", JSON.stringify(body, null, 2));
 
-    const winnersText = (winners || [])
-      .map((w, i) => {
-        const tier = w.tier_name || `รางวัลที่ ${i + 1}`;
-        return `- ${tier}: เลขที่ออก ${w.ticket_number} (รางวัล ${w.prize_amount} บาท)`;
-      })
-      .join("\n");
+    const drawId = body.drawId ?? body.draw_id ?? null;
+    const drawCode = body.drawCode ?? body.draw_code ?? null;
+    const productName = body.productName ?? null;
 
-    const message = [
-      `ระบบ eLottery ได้ทำการออกรางวัลเรียบร้อยแล้ว`,
+    const winners = Array.isArray(body.winners) ? body.winners : [];
+    console.log("WINNERS:", JSON.stringify(winners, null, 2));
+
+    // 🔹 สร้าง subject (กัน undefined ด้วย ||)
+    const subject = `แจ้งผลออกรางวัล eLottery งวด ${drawCode || drawId || "-"}`;
+
+    // 🔹 สร้างข้อความของแต่ละรางวัล กัน undefined ทุกช่อง
+    const winnersText =
+      winners.length === 0
+        ? "- ไม่มีข้อมูลรางวัล"
+        : winners
+            .map((w, i) => {
+              const tier =
+                w.tier_name ||
+                w.tier ||
+                `รางวัลที่ ${i + 1}`;
+
+              const ticket =
+                w.ticket_number != null
+                  ? String(w.ticket_number)
+                  : "-";
+
+              const prize =
+                w.prize_amount != null
+                  ? Number(w.prize_amount).toLocaleString("th-TH")
+                  : "0";
+
+              return `- ${tier}: เลขที่ออก ${ticket} (รางวัล ${prize} บาท)`;
+            })
+            .join("\n");
+
+    const messageLines = [
+      "ระบบ eLottery ได้ทำการออกรางวัลเรียบร้อยแล้ว",
       productName ? `ผลิตภัณฑ์: ${productName}` : null,
-      drawCode ? `รหัสงวด: ${drawCode}` : `รหัสงวด: ${drawId}`,
+      drawCode || drawId
+        ? `รหัสงวด: ${drawCode || drawId}`
+        : null,
       "",
       "หมายเลขที่ถูกรางวัล:",
-      winnersText || "- ไม่มีข้อมูลรางวัล",
+      winnersText,
       "",
       "คุณสามารถเข้าสู่ระบบ eLottery เพื่อตรวจสอบสลากของคุณได้ที่หน้า “ประวัติการออกรางวัล”",
       "",
       "ขอบคุณที่ใช้บริการ eLottery",
-    ]
-      .filter(Boolean)
-      .join("\n");
+    ];
+
+    const message = messageLines.filter(Boolean).join("\n");
+
+    console.log("SNS SUBJECT:", subject);
+    console.log("SNS MESSAGE:\n" + message);
 
     const cmd = new PublishCommand({
       TopicArn: TOPIC_ARN,
