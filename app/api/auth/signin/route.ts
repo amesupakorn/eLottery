@@ -71,7 +71,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ดึงข้อมูล user จาก DB (หรือจะ upsert ให้ sync กับ Cognito ก็ได้)
     const dbUser = await prisma.user.findUnique({ where: { email } });
 
     const res = NextResponse.json({
@@ -83,20 +82,19 @@ export async function POST(req: NextRequest) {
       },
     });
     
-    const isProd = process.env.NODE_ENV === 'production';
-    const isCloud9 = /vfs\.cloud9\./i.test(req.headers.get('host') ?? '');
-    
-    res.cookies.set('id_token', token.IdToken!, {
-      httpOnly: true,
-      secure: isProd || isCloud9,          // Cloud9 preview เป็น HTTPS
-      sameSite: isCloud9 ? 'none' : 'lax', // iFrame ต้อง None
-      path: '/',
-      maxAge: token.ExpiresIn,             // วินาทีจาก Cognito
-    });
+    const host = req.headers.get("host") ?? "";
+    const forwardedProto = req.headers.get("x-forwarded-proto") ?? "";
+    const isCloud9 = /vfs\.cloud9\./i.test(host);
+    const isHttps = forwardedProto === "https" || host.startsWith("https://");
+    const secure = isHttps || isCloud9;
 
-    // (ถ้าต้องการ ใช้ AccessToken/RefreshToken ก็ set เพิ่มอีก 2 cookie)
-    // if (token.AccessToken) res.cookies.set("access_token", token.AccessToken, { ... });
-    // if (token.RefreshToken) res.cookies.set("refresh_token", token.RefreshToken, { ... });
+    res.cookies.set("id_token", token.IdToken!, {
+      httpOnly: true,
+      secure,                       // ✅ ปรับให้ match โปรโตคอล
+      sameSite: isCloud9 ? "none" : "lax",
+      path: "/",
+      maxAge: token.ExpiresIn,
+    });
 
     return res;
   } catch (err: any) {
