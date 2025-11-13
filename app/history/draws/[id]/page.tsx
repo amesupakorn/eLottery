@@ -14,7 +14,6 @@ import {
 import React from "react";
 import type { DrawDetail, ResultItem } from "@/types/draw";
 
-
 function thMoney(x: string | number) {
   const n = typeof x === "string" ? Number(x) : x;
   return "฿ " + (Number.isFinite(n) ? n.toLocaleString("th-TH") : x);
@@ -25,15 +24,22 @@ function thDate(iso: string) {
   return d.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" });
 }
 
-const tierIcon = (name: string) => {
-  if (name.includes("อันดับที่ 1")) return <Crown className="h-5 w-5 text-amber-700" />;
-  if (name.includes("อันดับที่ 2")) return <Medal className="h-5 w-5 text-amber-700" />;
-  if (name.includes("อันดับที่ 3")) return <Award className="h-5 w-5 text-amber-700" />;
+const tierIcon = (name: string | undefined) => {
+  const label = name ?? "";
+  if (label.includes("อันดับที่ 1")) return <Crown className="h-5 w-5 text-amber-700" />;
+  if (label.includes("อันดับที่ 2")) return <Medal className="h-5 w-5 text-amber-700" />;
+  if (label.includes("อันดับที่ 3")) return <Award className="h-5 w-5 text-amber-700" />;
   return <Award className="h-5 w-5 text-amber-700" />;
 };
 
-export default function DrawDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = React.use(params);
+// ✅ รับ params เป็น Promise แล้วใช้ React.use(params)
+export default function DrawDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = React.use(params); // จะ suspend จนได้ค่า id แล้ว
+
   const [data, setData] = useState<DrawDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -46,6 +52,7 @@ export default function DrawDetailPage({ params }: { params: Promise<{ id: strin
         const json = await res.json();
         setData(json as DrawDetail);
       } catch (e: any) {
+        console.error(e);
         setErr("ไม่พบข้อมูลงวดนี้ หรือมีข้อผิดพลาดในการเชื่อมต่อ");
       } finally {
         setLoading(false);
@@ -57,7 +64,7 @@ export default function DrawDetailPage({ params }: { params: Promise<{ id: strin
   const grouped = useMemo(() => {
     const map = new Map<string, ResultItem[]>();
     (data?.results ?? []).forEach((r) => {
-      const key = r.prize_tier;
+      const key = r.prize_tier ?? "ไม่ทราบชั้นรางวัล";
       map.set(key, [...(map.get(key) || []), r]);
     });
     return map;
@@ -65,11 +72,13 @@ export default function DrawDetailPage({ params }: { params: Promise<{ id: strin
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900">
-
       {/* Header */}
       <header className="sticky top-0 z-20 bg-gray-500/20 backdrop-blur">
         <div className="mx-auto max-w-md px-4 py-3 flex items-center gap-2">
-          <Link href="/history/draws" className="rounded-full p-2 -ml-2 hover:bg-gray-100 text-white hover:text-black">
+          <Link
+            href="/history/draws"
+            className="rounded-full p-2 -ml-2 hover:bg-gray-100 text-white hover:text-black"
+          >
             <ChevronLeft className="h-5 w-5" />
           </Link>
           <h1 className="text-base font-semibold text-white flex items-center gap-2">
@@ -97,13 +106,17 @@ export default function DrawDetailPage({ params }: { params: Promise<{ id: strin
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs text-gray-500">งวดที่</p>
-                  <p className="text-lg font-semibold text-gray-900">{data.draw_code}</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {data.draw_code}
+                  </p>
                   <p className="mt-1 text-xs text-gray-500 flex items-center gap-1">
                     <CalendarDays className="h-4 w-4 text-gray-400" />
                     {thDate(data.created_at)}
                   </p>
                   {data.product_name && (
-                    <p className="mt-1 text-xs text-gray-500">ผลิตภัณฑ์: {data.product_name}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      ผลิตภัณฑ์: {data.product_name}
+                    </p>
                   )}
                 </div>
                 <span
@@ -135,11 +148,17 @@ export default function DrawDetailPage({ params }: { params: Promise<{ id: strin
                   >
                     <div className="flex items-center gap-2">
                       {tierIcon(t.name)}
-                      <span className="text-sm font-medium text-gray-800">{t.name}</span>
+                      <span className="text-sm font-medium text-gray-800">
+                        {t.name}
+                      </span>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-emerald-500">{thMoney(t.prize_amount)}</p>
-                      <p className="text-[11px] text-gray-500">จำนวน {t.winners_count} รางวัล</p>
+                      <p className="text-sm font-semibold text-emerald-500">
+                        {thMoney(t.prize_amount)}
+                      </p>
+                      <p className="text-[11px] text-gray-500">
+                        จำนวน {t.winners_count} รางวัล
+                      </p>
                     </div>
                   </li>
                 ))}
@@ -148,7 +167,9 @@ export default function DrawDetailPage({ params }: { params: Promise<{ id: strin
 
             {/* Results grouped by tier */}
             <section className="mt-5">
-              <h2 className="mb-3 text-sm font-semibold text-white">หมายเลขที่ถูกรางวัล</h2>
+              <h2 className="mb-3 text-sm font-semibold text-white">
+                หมายเลขที่ถูกรางวัล
+              </h2>
 
               {[...grouped.keys()].length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-300 bg-white py-10 text-center text-sm text-gray-600">
@@ -156,11 +177,16 @@ export default function DrawDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               ) : (
                 [...grouped.entries()].map(([tier, items]) => (
-                  <div key={tier} className="mb-4 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                  <div
+                    key={tier}
+                    className="mb-4 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm"
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {tierIcon(tier)}
-                        <p className="text-sm font-semibold text-gray-900">{tier}</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {tier}
+                        </p>
                       </div>
                       <span className="text-[11px] text-gray-500">
                         ทั้งหมด {items.length} หมายเลข

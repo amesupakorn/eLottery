@@ -68,7 +68,7 @@ export async function POST(_req: NextRequest) {
   const picks: {
     prize_tier_id: number;
     ticket_number: string;
-    prize_amount: number; // <-- ใช้ number แทน Decimal
+    prize_amount: number;
     tier_name?: string;
   }[] = [];
 
@@ -76,15 +76,16 @@ export async function POST(_req: NextRequest) {
     for (let i = 0; i < tier.winners_count; i++) {
       let ticket: string;
       do {
-        const n = randInt(1, 100000); // 1..100000
-        ticket = pad6(n - 1);         // 000000..099999
+        const n = randInt(100000, 199999);
+        ticket = n.toString();          
       } while (used.has(ticket));
+
       used.add(ticket);
 
       picks.push({
         prize_tier_id: tier.id,
         ticket_number: ticket,
-        prize_amount: Number(tier.prize_amount), // แปลงเป็น number ครั้งเดียว
+        prize_amount: Number(tier.prize_amount),
         tier_name: tier.tier_name,
       });
     }

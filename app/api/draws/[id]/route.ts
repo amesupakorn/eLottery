@@ -1,4 +1,3 @@
-// app/api/draws/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -6,13 +5,18 @@ export const runtime = "nodejs";
 
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }   // ⬅ เปลี่ยนตรงนี้
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  // ดึง id จาก Promise
-  const { id } = await context.params;
-
   try {
+    const { id } = await params;
+
     const drawId = Number(id);
+    if (Number.isNaN(drawId)) {
+      return NextResponse.json(
+        { error: "Invalid id" },
+        { status: 400 }
+      );
+    }
 
     const draw = await prisma.draw.findUnique({
       where: { id: drawId },
@@ -35,8 +39,11 @@ export async function GET(
       prize_tiers: draw.prizeTiers,
       results: draw.results,
     });
-  } catch (e: any) {
+  } catch (e) {
     console.error("GET /api/draws/[id] error:", e);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
