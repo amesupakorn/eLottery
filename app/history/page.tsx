@@ -97,23 +97,34 @@ function LedgerList({ q, from, to }: { q: string; from: string; to: string }) {
           direction?: "CREDIT" | "DEBIT";
         }>;
 
-        const mapped = txs.map((t) => {
+          const mapped = txs.map((t) => {
           const entry = (t.type ?? t.entry_type ?? "DEPOSIT") as string;
+
+          // map entry type จาก DB -> type ฝั่ง UI
+          const logicalType: LedgerItem["type"] =
+            entry === "WITHDRAWAL" || entry === "WITHDRAW" ? "WITHDRAW"
+            : entry === "PURCHASE" ? "PURCHASE"
+            : entry === "PRIZE"    ? "PRIZE"
+            : entry === "REFUND"   ? "REFUND"
+            : "DEPOSIT"; // default = ฝากเงิน
+
           const amountNum =
             typeof t.amount === "string" ? Number(t.amount) : t.amount ?? 0;
-          const signed =
-            t.direction === "CREDIT"
-              ? Math.abs(amountNum)
-              : -Math.abs(amountNum);
+
+          // กำหนด type ที่ต้องเป็นลบ
+          const negativeTypes: LedgerItem["type"][] = ["WITHDRAW", "PURCHASE"];
+
+          const signed = negativeTypes.includes(logicalType)
+            ? -Math.abs(amountNum)  // ถอน / ซื้อสลาก = ลบ
+            :  Math.abs(amountNum); // ฝาก / รับรางวัล / คืนเงิน = บวก
 
           return {
             id: String(t.id),
-            type: entry === "WITHDRAWAL" ? "WITHDRAW" : (entry as any),
+            type: logicalType,
             amount: signed,
             note: t.note ?? undefined,
-            occurredAt: (t.occurredAt ??
-              t.occurred_at ??
-              new Date().toISOString()) as string,
+            occurredAt:
+              (t.occurredAt ?? t.occurred_at ?? new Date().toISOString()) as string,
           };
         });
 

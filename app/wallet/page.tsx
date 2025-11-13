@@ -46,14 +46,49 @@ export default function WalletPage() {
     fetchWallet();
   }, []);
 
-  // ✅ โหลดธุรกรรมทั้งหมด
+    // ✅ โหลดธุรกรรมทั้งหมด
   useEffect(() => {
     const fetchTx = async () => {
       setTxLoading(true);
       try {
         const res = await fetch("/api/history/transactions");
         const data = await res.json();
-        setTransactions(data.items ?? []);
+        const txs = (data.items ?? []) as Array<{
+          id: number | string;
+          entry_type?: string;
+          type?: string;
+          amount: number | string;
+          note?: string | null;
+          occurredAt?: string;
+          occurred_at?: string;
+        }>;
+
+        const mapped: LedgerItem[] = txs.map((t) => {
+          const rawType = (t.type ?? t.entry_type ?? "DEPOSIT") as string;
+          const entry = rawType.toUpperCase();
+          const rawAmount =
+            typeof t.amount === "string" ? Number(t.amount) : t.amount ?? 0;
+          const abs = Math.abs(rawAmount);
+
+          let signed = abs;
+          if (["WITHDRAW", "WITHDRAWAL", "PURCHASE"].includes(entry)) {
+            signed = -abs;
+          } else if (["DEPOSIT", "PRIZE", "REFUND"].includes(entry)) {
+            signed = abs;
+          }
+
+          return {
+            id: String(t.id),
+            type: entry === "WITHDRAWAL" ? "WITHDRAW" : (entry as any),
+            amount: signed,
+            note: t.note ?? undefined,
+            occurredAt: (t.occurredAt ??
+              t.occurred_at ??
+              new Date().toISOString()) as string,
+          };
+        });
+
+        setTransactions(mapped);
       } catch (err) {
         console.error("Error fetching transactions:", err);
       } finally {
@@ -62,7 +97,6 @@ export default function WalletPage() {
     };
     fetchTx();
   }, []);
-
   const latest = transactions.slice(0, 5); // 5 รายการล่าสุด
 
   return (
@@ -178,6 +212,7 @@ function Action({ icon, label }: { icon: React.ReactNode; label: string }) {
 }
 
 function TransactionList({ items }: { items: any[] }) {
+  
   return (
     <ul className="space-y-2">
       {items.map((it) => (
