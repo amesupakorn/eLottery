@@ -173,7 +173,6 @@ export default function BuyTicketWalletPage() {
 
       console.log("--- PURCHASE SUCCESS ---", purchase);
       
-<<<<<<< HEAD
       // 🔹 STEP 2: สร้างใบเสร็จ (PDF) จากข้อมูลการซื้อจริง
       const quantityInt = Math.floor(amount / UNIT_PRICE);
       
@@ -192,8 +191,6 @@ export default function BuyTicketWalletPage() {
         buyerEmail: user.email,
       };
       
-=======
->>>>>>> 3aa573d (refactor: fix bug alert)
       const pdfRes = await fetch("/api/receipts/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -211,9 +208,6 @@ export default function BuyTicketWalletPage() {
         router.push(`/tickets?receipt=${encodeURIComponent(receiptId)}`);
       }
       
-      // 🔹 STEP 3: แสดงข้อความสำเร็จ
-
-      // ✅ กลับไปหน้ารายการสลาก
     } catch (error) {
       console.error(error);
       alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
