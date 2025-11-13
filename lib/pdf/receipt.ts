@@ -59,12 +59,12 @@ export async function buildPurchaseReceiptPDF(data: ReceiptPayload): Promise<Buf
     doc.moveDown(0.3);
     doc.font("app-regular").fontSize(10);
     doc.text(`Quantity: ${data.quantity} unit(s)`);
-    doc.text(`Unit Price: $${data.unitPrice.toFixed(2)}`);
+    doc.text(`Unit Price: ฿${data.unitPrice.toFixed(2)}`);
     doc.text(`Range: ${data.rangeStart} - ${data.rangeEnd}`);
     doc.moveDown(0.5);
 
     doc.font("app-bold").fontSize(12)
-      .text(`Total: $${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, { align: "right" });
+      .text(`Total: ฿${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, { align: "right" });
 
     doc.moveDown(1);
 
