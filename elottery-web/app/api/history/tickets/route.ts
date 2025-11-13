@@ -11,50 +11,60 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const from = searchParams.get("from"); // YYYY-MM-DD
-    const to   = searchParams.get("to");   // YYYY-MM-DD
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
 
+    // ⭐ include Receipt เพื่อดึงใบเสร็จ
     const purchases = await prisma.ticketPurchase.findMany({
       where: {
         user_id: user.id,
       },
       orderBy: { id: "desc" },
+      include: {
+        Receipt: true,         // 👈 เพิ่มตรงนี้
+      },
     });
 
     if (!purchases.length) {
       return NextResponse.json({ items: [] });
     }
 
-    // 2) ดึง Draw ที่เกี่ยวข้องด้วย draw_id แล้วทำ map
-    const drawIds = Array.from(new Set(purchases.map(p => p.draw_id).filter((id): id is number => id !== null)));
+    // ⭐ ดึง draw ที่เกี่ยวข้อง
+    const drawIds = Array.from(
+      new Set(purchases.map((p) => p.draw_id).filter((id): id is number => id !== null))
+    );
+
     const draws = await prisma.draw.findMany({
       where: { id: { in: drawIds } },
     });
-    const drawById = new Map(draws.map(d => [d.id, d]));
+    const drawById = new Map(draws.map((d) => [d.id, d]));
 
-    // 3) ดึงผลรางวัลของ purchase เหล่านี้เพื่อระบุ WIN
-    const purchaseIds = purchases.map(p => p.id);
+    // ⭐ ดึงผลรางวัล
+    const purchaseIds = purchases.map((p) => p.id);
     const results = await prisma.drawResult.findMany({
       where: { purchase_item_id: { in: purchaseIds } },
     });
+
     const winByPurchaseId = new Map<number, { prize_amount: number }>();
     for (const r of results) {
       if (r.purchase_item_id != null && !winByPurchaseId.has(r.purchase_item_id)) {
-        winByPurchaseId.set(r.purchase_item_id, { prize_amount: Number(r.prize_amount) });
+        winByPurchaseId.set(r.purchase_item_id, {
+          prize_amount: Number(r.prize_amount),
+        });
       }
     }
 
-    // 4) map → payload สำหรับ UI (TicketItem[])
-    const rawItems = purchases.map(p => {
+    // ⭐ Map → UI payload
+    const rawItems = purchases.map((p) => {
       const d = p.draw_id != null ? drawById.get(p.draw_id) : undefined;
       const isWin = winByPurchaseId.has(p.id);
       const status: "OWNED" | "CANCELED" | "WIN" =
         p.status === "CANCELED" ? "CANCELED" : isWin ? "WIN" : "OWNED";
-      
+
       const ticketNumber =
-          p.range_start === p.range_end
-            ? String(p.range_start)
-            : `${p.range_start} - ${p.range_end}`;
+        p.range_start === p.range_end
+          ? String(p.range_start)
+          : `${p.range_start} - ${p.range_end}`;
 
       return {
         id: String(p.id),
@@ -62,15 +72,16 @@ export async function GET(req: NextRequest) {
         product: d?.product_name ?? "สลากดิจิทัล",
         status,
         price: Number(p.total_price),
-        purchasedAt: (p.purchased_at),
+        purchasedAt: p.purchased_at,
+        receiptId: p.Receipt?.receipt_id ?? null,   // 👈 ส่ง receipt id กลับ UI
       };
     });
 
-    // 5) กรองช่วงวัน/ข้อความ (เสริม)
+    // ⭐ กรองช่วงวัน
     const items = rawItems.filter((it) => {
       const t = new Date(it.purchasedAt).getTime();
       const okFrom = from ? t >= new Date(`${from}T00:00:00`).getTime() : true;
-      const okTo   = to   ? t <= new Date(`${to}T23:59:59.999`).getTime() : true;
+      const okTo = to ? t <= new Date(`${to}T23:59:59.999`).getTime() : true;
       return okFrom && okTo;
     });
 

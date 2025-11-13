@@ -56,11 +56,16 @@ export async function POST(req: NextRequest) {
         notify_opt: dbUser?.notify_opt ?? false,
       },
     });
-    res.cookies.set("id_token", token.IdToken!, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        maxAge: token.ExpiresIn,
+    
+    const isProd = process.env.NODE_ENV === 'production';
+    const isCloud9 = /vfs\.cloud9\./i.test(req.headers.get('host') ?? '');
+    
+    res.cookies.set('id_token', token.IdToken!, {
+      httpOnly: true,
+      secure: isProd || isCloud9,          // Cloud9 preview เป็น HTTPS
+      sameSite: isCloud9 ? 'none' : 'lax', // iFrame ต้อง None
+      path: '/',
+      maxAge: token.ExpiresIn,             // วินาทีจาก Cognito
     });
     return res;
     

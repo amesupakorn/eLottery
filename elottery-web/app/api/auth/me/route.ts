@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import { NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth/getCurrentUser';
 
-export async function GET(req: NextRequest) {
-  const token = req.cookies.get("id_token")?.value;
-  if (!token) return NextResponse.json({ error: "No token" }, { status: 401 });
-
-  const decoded = jwt.decode(token) as any;
-  if (decoded.exp * 1000 < Date.now()) {
-    return NextResponse.json({ error: "Token expired" }, { status: 401 });
-  }
-
-  return NextResponse.json({ decoded });
+export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ user: null });
+  return NextResponse.json({
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.full_name,
+      notify_opt: user.notify_opt,
+    }
+  });
 }

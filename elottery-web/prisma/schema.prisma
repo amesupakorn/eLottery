@@ -18,6 +18,8 @@ model User {
   notify_opt  Boolean?    @default(false)
   @@map("users")
   ticketPurchases TicketPurchase[]
+  receipts        Receipt[]
+
 }
 
 model Wallet {
@@ -63,9 +65,8 @@ model TicketPurchase {
   draw_id      Int?
   purchased_at DateTime  @default(now())
 
-  receipt_s3_key   String?        @db.VarChar(512)
-  manifest_s3_key  String?        @db.VarChar(512)
-  artifacts        Json?         
+  Receipt      Receipt?
+
 
   User   User   @relation(fields: [user_id], references: [id])
   Wallet Wallet @relation(fields: [wallet_id], references: [id])
@@ -84,6 +85,7 @@ model Draw {
   created_at   DateTime     @default(now())
   results      DrawResult[]
   prizeTiers   PrizeTier[]
+  receipts     Receipt[]
 
   @@map("draws")
   ticketPurchases TicketPurchase[]
@@ -151,4 +153,21 @@ enum DrawStatus {
   DRAWING
   PUBLISHED
   CLOSED
+}
+
+model Receipt {
+  id           Int      @id @default(autoincrement())
+  receipt_id   String   @unique
+  user_id      Int
+  draw_id      Int?
+  s3_key       String
+  total_amount Decimal  @db.Decimal(18, 2)
+  created_at   DateTime @default(now())
+  purchase_id   Int      @unique
+
+  purchase      TicketPurchase @relation(fields: [purchase_id], references: [id])
+  User User   @relation(fields: [user_id], references: [id])
+  Draw Draw?  @relation(fields: [draw_id], references: [id])
+
+  @@map("receipts")
 }

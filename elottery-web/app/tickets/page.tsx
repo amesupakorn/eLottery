@@ -6,10 +6,23 @@ import Link from "next/link";
 import { TicketPurchase } from "@/types/tickets";
 import api from "@/lib/axios";
 import { LedgerItem, TicketItem } from "@/types/history";
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function TicketPage() {
   const [tab, setTab] = useState<"tickets" | "ledger">("tickets");
-
+  const params = useSearchParams();
+  const receiptId = params.get("receipt");
+    
+  useEffect(() => {
+    if (receiptId) {
+      window.open(`/api/receipts/open?receiptId=${receiptId}`, "_blank");
+      
+      const url = new URL(window.location.href);
+      url.searchParams.delete("receipt");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [receiptId]);
+  
   const [total, setTotal] = useState(0);
   const [count, setCount] = useState(0);
   const [tickets, setTicket] = useState<TicketPurchase[]>([]);

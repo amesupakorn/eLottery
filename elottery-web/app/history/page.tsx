@@ -8,6 +8,9 @@ import {
   ArrowUpCircle,
   Search,
 } from "lucide-react";
+import { FileText } from "lucide-react";
+import Link from "next/link";
+
 
 import type { LedgerItem, TicketItem } from "@/types/history";
 import api from "@/lib/axios";
@@ -174,7 +177,7 @@ function LedgerList({ q, from, to }: { q: string; from: string; to: string }) {
 
 function TicketList({ q, from, to }: { q: string; from: string; to: string }) {
   const [items, setItems] = useState<TicketItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); 
 
   useEffect(() => {
     const u = new URL("/api/history/tickets", window.location.origin);
@@ -188,45 +191,111 @@ function TicketList({ q, from, to }: { q: string; from: string; to: string }) {
       .finally(() => setLoading(false));
   }, [from, to]);
 
+  // กรองฝั่ง client: วันที่ + keyword
   const filtered = useMemo(() => {
+    const keyword = q.trim().toLowerCase();
+
     const f = (it: TicketItem) => {
       const inRange =
         (!from || new Date(it.purchasedAt) >= new Date(from)) &&
         (!to || new Date(it.purchasedAt) <= new Date(to + "T23:59:59"));
-      const keyword = q.trim().toLowerCase();
+
       const match =
         !keyword ||
-        it.ticketNumber.includes(keyword) ||
+        it.ticketNumber.toLowerCase().includes(keyword) ||
         it.product.toLowerCase().includes(keyword) ||
         it.status.toLowerCase().includes(keyword);
+
       return inRange && match;
     };
+
     return items.filter(f);
-  }, [items, from, to]);
+  }, [items, q, from, to]);
 
   if (loading) {
-    return <EmptyCard icon={<TicketIcon className="h-8 w-8 text-gray-400" />} title="กำลังโหลดสลาก" note="ดึงข้อมูลจากฐานข้อมูล..." />;
+    return (
+      <EmptyCard
+        icon={<TicketIcon className="h-8 w-8 text-gray-400" />}
+        title="กำลังโหลดสลาก"
+        note="ดึงข้อมูลจากฐานข้อมูล..."
+      />
+    );
   }
 
   if (!filtered.length) {
-    return <EmptyCard icon={<TicketIcon className="h-8 w-8 text-gray-400" />} title="ยังไม่มีสลากดิจิทัล" note="ซื้อสลากแล้วจะแสดงที่นี่" />;
+    return (
+      <EmptyCard
+        icon={<TicketIcon className="h-8 w-8 text-gray-400" />}
+        title="ยังไม่มีสลากดิจิทัล"
+        note="ซื้อสลากแล้วจะแสดงที่นี่"
+      />
+    );
   }
 
   return (
-    <ul className="space-y-2">
+    <ul className="space-y-3">
       {filtered.map((it) => (
-        <li key={it.id} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className={`inline-flex items-center justify-center rounded-xl p-2 text-white ${statusColor(it.status)}`}>
+        <li
+          key={it.id}
+          className="rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm"
+        >
+          <div className="flex items-start gap-3">
+            {/* Icon status ฝั่งซ้าย */}
+            <span
+              className={`inline-flex items-center justify-center rounded-xl p-2 text-white ${statusColor(
+                it.status
+              )}`}
+            >
               <TicketIcon className="h-5 w-5" />
             </span>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-800">เลข {it.ticketNumber}</p>
-              <p className="text-xs text-gray-500">{it.product} · {formatDate(it.purchasedAt)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-semibold text-gray-900">{formatMoney(it.price)}</p>
-              <p className={`text-[11px] ${statusTextColor(it.status)}`}>{labelTicketStatus(it.status)}</p>
+
+            {/* เนื้อหา */}
+            <div className="flex-1 space-y-1">
+              {/* บรรทัดบน: หมายเลขสลาก + วันที่ */}
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-sm font-semibold text-gray-900">
+                  เลขสลาก: <span className="font-mono">{it.ticketNumber}</span>
+                </p>
+                <p className="text-[11px] text-gray-500">
+                  {formatDate(it.purchasedAt)}
+                </p>
+              </div>
+
+              {/* บรรทัดกลาง: ชื่อผลิตภัณฑ์ */}
+              <p className="text-xs text-gray-600">{it.product}</p>
+
+              {/* บรรทัดล่าง: สถานะ + ราคา + ปุ่มดูสลิป */}
+              <div className="mt-2 flex items-center justify-between gap-2">
+                {/* สถานะ */}
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${statusTextColor(
+                    it.status
+                  )} bg-gray-50`}
+                >
+                  {labelTicketStatus(it.status)}
+                </span>
+
+                <div className="flex items-center gap-2">
+                  {/* ราคา */}
+                  <span className="text-sm font-semibold text-gray-900">
+                    {formatMoney(it.price)}
+                  </span>
+
+                  {/* ปุ่มดูสลิป (ถ้ามี receiptId) */}
+                  {it.receiptId && (
+                    <Link
+                      href={`/api/receipts/open?receiptId=${encodeURIComponent(
+                        it.receiptId
+                      )}`}
+                      target="_blank"
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-100"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>ดูสลิป</span>
+                    </Link>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </li>
@@ -234,7 +303,6 @@ function TicketList({ q, from, to }: { q: string; from: string; to: string }) {
     </ul>
   );
 }
-
 /* ---------------- Shared UI ---------------- */
 
 function EmptyCard({ icon, title, note }: { icon: React.ReactNode; title: string; note: string }) {

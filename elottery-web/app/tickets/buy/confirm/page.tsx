@@ -39,6 +39,15 @@ export default function BuyTicketWalletPage() {
   const sp = useSearchParams();
   const drawCode = sp.get("draw"); 
   const [draw, setDraw] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    (async () => {
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      const data = await res.json();
+      setUser(data.user); // เก็บใน state / context
+    })();
+  }, []);
 
   useEffect(() => {
     if (!drawCode) return;
@@ -157,40 +166,44 @@ export default function BuyTicketWalletPage() {
 
       console.log("--- PURCHASE SUCCESS ---", purchase);
       
-      const user = await getCurrentUser();
       // 🔹 STEP 2: สร้างใบเสร็จ (PDF) จากข้อมูลการซื้อจริง
+      const quantityInt = Math.floor(amount / UNIT_PRICE);
+      
+      const payloads = {
+        receiptId: `RCPT-${purchase.id}`,
+        purchaseId: purchase.id,
+        userId: user.id,
+        drawId: purchase.draw_id,
+        drawCode,
+        productName: "Digital Lottery Ticket",
+        quantity: quantityInt,
+        unitPrice: UNIT_PRICE,
+        rangeStart: purchase.range_start,
+        rangeEnd: purchase.range_end,
+        buyerName: user.full_name ?? user.name,
+        buyerEmail: user.email,
+      };
+      
       const pdfRes = await fetch("/api/receipts/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          receiptId: `RCPT-${purchase.id ?? Date.now()}`,
-          drawCode: drawCode,
-          productName: "สลากดิจิทัล 1 ปี",
-          quantity: quantity,
-          unitPrice: UNIT_PRICE,
-          rangeStart: purchase.range_start,
-          rangeEnd: purchase.range_end,
-          buyerName: user?.full_name,
-          buyerEmail: user?.email,
-          verifyUrl: `${window.location.origin}/verify/${purchase.id}`,
-        }),
+        body: JSON.stringify(payloads),
       });
-
-      const pdfData = await pdfRes.json();
-
-      if (pdfRes.ok && pdfData.downloadUrl) {
-        window.open(pdfData.downloadUrl, "_blank");
-      } else {
-        console.error("PDF generation error:", pdfData.error);
+      
+      const pdfJson = await pdfRes.json();
+      
+      
+      if (pdfRes.ok && pdfJson.receiptId) {
+        setSuccess(
+        ` ซื้อสลากสำเร็จ\nยอดเงิน: ${formattedAmount}\nจำนวนหน่วย: ${quantity}\nช่วงหมายเลข: ${purchase.range_start} - ${purchase.range_end}\n\nรหัสคำสั่งซื้อ #${purchase.id}`
+        );
+        const receiptId = pdfJson.receiptId;
+        router.push(`/tickets?receipt=${encodeURIComponent(receiptId)}`);
       }
-
+      
       // 🔹 STEP 3: แสดงข้อความสำเร็จ
-      setSuccess(
-        `✅ ซื้อสลากสำเร็จ\nยอดเงิน: ${formattedAmount}\nจำนวนหน่วย: ${quantity}\nช่วงหมายเลข: ${purchase.range_start} - ${purchase.range_end}\n\nรหัสคำสั่งซื้อ #${purchase.id}`
-      );
 
       // ✅ กลับไปหน้ารายการสลาก
-      router.push("/tickets");
     } catch (error) {
       console.error(error);
       alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");

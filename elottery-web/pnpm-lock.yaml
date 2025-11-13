@@ -38,6 +38,9 @@ importers:
       dayjs:
         specifier: ^1.11.19
         version: 1.11.19
+      fontkit:
+        specifier: ^2.0.4
+        version: 2.0.4
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.2
