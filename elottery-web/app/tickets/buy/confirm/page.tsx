@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import api from "@/lib/axios";
 import { useAlert } from "@/context/AlertContext";
-import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 
 const MIN_AMOUNT = 1000;
 const STEP = 1000;
@@ -49,6 +48,14 @@ export default function BuyTicketWalletPage() {
     })();
   }, []);
 
+  useEffect(() => {
+        (async () => {
+          const res = await fetch('/api/auth/me', { credentials: 'include' });
+          const data = await res.json();
+          setUser(data.user);
+        })();
+  }, []);
+  
   useEffect(() => {
     if (!drawCode) return;
     (async () => {
@@ -166,6 +173,7 @@ export default function BuyTicketWalletPage() {
 
       console.log("--- PURCHASE SUCCESS ---", purchase);
       
+<<<<<<< HEAD
       // 🔹 STEP 2: สร้างใบเสร็จ (PDF) จากข้อมูลการซื้อจริง
       const quantityInt = Math.floor(amount / UNIT_PRICE);
       
@@ -184,6 +192,8 @@ export default function BuyTicketWalletPage() {
         buyerEmail: user.email,
       };
       
+=======
+>>>>>>> 3aa573d (refactor: fix bug alert)
       const pdfRes = await fetch("/api/receipts/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

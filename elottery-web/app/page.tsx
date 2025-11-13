@@ -7,12 +7,14 @@ import api from "@/lib/axios";
 import { useSearchParams } from "next/navigation";
 import WalletNotify from "@/components/WalletNotify"
 import Link from "next/link";
+import { useAlert } from "@/context/AlertContext";
 export default function DashboardPage() {
   const { user, setUser } = useUser();
   const [showModal, setShowModal] = useState(false);
   const searchParams = useSearchParams();
   const notifyOpt = searchParams.get("notify_opt") || ""; 
-
+  const { setError, setSuccess } = useAlert();
+  
   useEffect(() => {
     if (!user) return;
 
@@ -142,8 +144,4 @@ function Action({ icon, label }: { icon: React.ReactNode; label: string }) {
       <span className="mt-2 text-xs font-medium text-gray-700">{label}</span>
     </div>
   );
-}
-
-function setSuccess(arg0: string) {
-  throw new Error("Function not implemented.");
 }
