@@ -1,23 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { DrawStatus, Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 
-// 3 ชั้นรางวัลตามที่กำหนด
+// 3 ชั้นรางวัล
 const DEFAULT_TIERS = [
-  { tier_name: "อันดับที่ 1", prize_amount: new Prisma.Decimal(10_000_000), winners_count: 1 },
-  { tier_name: "อันดับที่ 2", prize_amount: new Prisma.Decimal(1_000_000), winners_count: 1 },
-  { tier_name: "อันดับที่ 3", prize_amount: new Prisma.Decimal(10_000),    winners_count: 5 },
+  { tier_name: "อันดับที่ 1", prize_amount: 10_000_000, winners_count: 1 },
+  { tier_name: "อันดับที่ 2", prize_amount: 1_000_000, winners_count: 1 },
+  { tier_name: "อันดับที่ 3", prize_amount: 10_000,    winners_count: 5 },
 ];
 
-// สร้าง draw_code แบบอ่านง่ายและน่าจะ unique (YYYYMMDD-XXX)
 function genDrawCode(): string {
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
-  const rand = Math.floor(Math.random() * 900 + 100); // 100..999
+  const rand = Math.floor(Math.random() * 900 + 100);
   return `${y}${m}${day}-${rand}`;
 }
 
@@ -25,10 +23,10 @@ export async function POST(req: NextRequest) {
   try {
     const { draw_code, product_name, seedPrizeTiers } = await req.json().catch(() => ({}));
 
-    // 1) เตรียม draw_code (ถ้าไม่ส่งมาให้)
-    let code = typeof draw_code === "string" && draw_code.trim() ? draw_code.trim() : genDrawCode();
+    // 1) draw_code
+    let code = draw_code?.trim?.() || genDrawCode();
 
-    // 2) รับประกัน unique (ลองใหม่สูงสุด 5 ครั้งถ้าชน)
+    // 2) Unique check
     for (let i = 0; i < 5; i++) {
       const exists = await prisma.draw.findUnique({ where: { draw_code: code } });
       if (!exists) break;
@@ -38,23 +36,39 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3) สร้าง draw (สถานะเริ่มต้น SCHEDULED)
+    // 3) Create draw
     const draw = await prisma.draw.create({
       data: {
         draw_code: code,
         product_name: product_name ?? null,
-        status: DrawStatus.SCHEDULED,
+        status: "SCHEDULED",     // ใช้ string literal แทน enum Prisma
       },
     });
 
-    // 4) (ทางเลือก) seed prize tiers = 3 ระดับ ถ้ายังไม่มี
+    // 4) prize tiers
     let seeded = 0;
     if (seedPrizeTiers) {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: {
+          prizeTier: {
+            count: (arg0: { where: { draw_id: any; }; }) => any; create: (arg0: {
+              data: {
+                draw_id: any; tier_name: string; prize_amount: number; // เป็น number ปลอดภัย
+                winners_count: number;
+              };
+            }) => any;
+          };
+        }) => {
         const current = await tx.prizeTier.count({ where: { draw_id: draw.id } });
         if (current === 0) {
           for (const t of DEFAULT_TIERS) {
-            await tx.prizeTier.create({ data: { draw_id: draw.id, ...t } });
+            await tx.prizeTier.create({
+              data: {
+                draw_id: draw.id,
+                tier_name: t.tier_name,
+                prize_amount: t.prize_amount, // เป็น number ปลอดภัย
+                winners_count: t.winners_count,
+              },
+            });
             seeded++;
           }
         }
@@ -76,7 +90,6 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (e: any) {
-    // duplicate draw_code ที่ส่งมาเอง
     if (e.code === "P2002") {
       return NextResponse.json({ error: "draw_code already exists" }, { status: 409 });
     }

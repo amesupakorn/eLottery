@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const formatted = draws.map((d) => ({
+    const formatted = draws.map((d: { id: any; draw_code: any; product_name: any; status: any; prizeTiers: any[]; _count: { results: any; }; created_at: any; }) => ({
       id: d.id,
       draw_code: d.draw_code,
       product_name: d.product_name,

@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       orderBy: { occurred_at: "desc" },
     });
 
-    const items = txs.map((t) => ({
+    const items = txs.map((t: { id: any; entry_type: string; amount: any; direction: string; note: any; occurred_at: { toISOString: () => any; }; }) => ({
       id: String(t.id),
       type: (t.entry_type === "WITHDRAWAL" ? "WITHDRAW" : t.entry_type) as
         | "DEPOSIT"

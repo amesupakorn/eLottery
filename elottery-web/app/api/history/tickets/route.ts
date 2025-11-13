@@ -31,16 +31,16 @@ export async function GET(req: NextRequest) {
 
     // ⭐ ดึง draw ที่เกี่ยวข้อง
     const drawIds = Array.from(
-      new Set(purchases.map((p) => p.draw_id).filter((id): id is number => id !== null))
+      new Set(purchases.map((p: { draw_id: any; }) => p.draw_id).filter((id: any): id is number => id !== null))
     );
 
     const draws = await prisma.draw.findMany({
       where: { id: { in: drawIds } },
     });
-    const drawById = new Map(draws.map((d) => [d.id, d]));
+    const drawById = new Map(draws.map((d: { id: any; }) => [d.id, d]));
 
     // ⭐ ดึงผลรางวัล
-    const purchaseIds = purchases.map((p) => p.id);
+    const purchaseIds = purchases.map((p: { id: any; }) => p.id);
     const results = await prisma.drawResult.findMany({
       where: { purchase_item_id: { in: purchaseIds } },
     });
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ⭐ Map → UI payload
-    const rawItems = purchases.map((p) => {
+    const rawItems = purchases.map((p: { draw_id: unknown; id: number; status: string; range_start: any; range_end: any; total_price: any; purchased_at: any; Receipt: { receipt_id: any; }; }) => {
       const d = p.draw_id != null ? drawById.get(p.draw_id) : undefined;
       const isWin = winByPurchaseId.has(p.id);
       const status: "OWNED" | "CANCELED" | "WIN" =
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
       return {
         id: String(p.id),
         ticketNumber,
-        product: d?.product_name ?? "สลากดิจิทัล",
+        product: "สลากดิจิทัล",
         status,
         price: Number(p.total_price),
         purchasedAt: p.purchased_at,
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
     });
 
     // ⭐ กรองช่วงวัน
-    const items = rawItems.filter((it) => {
+    const items = rawItems.filter((it: { purchasedAt: string | number | Date; }) => {
       const t = new Date(it.purchasedAt).getTime();
       const okFrom = from ? t >= new Date(`${from}T00:00:00`).getTime() : true;
       const okTo = to ? t <= new Date(`${to}T23:59:59.999`).getTime() : true;

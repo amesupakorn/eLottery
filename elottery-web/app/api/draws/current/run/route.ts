@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentDraw } from "@/lib/draw_ticket/draw";
-import { DrawStatus, Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 
 const DEFAULT_TIERS = [
-  { tier_name: "อันดับที่ 1", prize_amount: new Prisma.Decimal(10_000_000), winners_count: 1 },
-  { tier_name: "อันดับที่ 2", prize_amount: new Prisma.Decimal(1_000_000), winners_count: 1 },
-  { tier_name: "อันดับที่ 3", prize_amount: new Prisma.Decimal(10_000),    winners_count: 5 },
+  { tier_name: "อันดับที่ 1", prize_amount: 10_000_000, winners_count: 1 },
+  { tier_name: "อันดับที่ 2", prize_amount: 1_000_000, winners_count: 1 },
+  { tier_name: "อันดับที่ 3", prize_amount: 10_000,    winners_count: 5 },
 ];
 
 const PRIZE_NOTIFY_API_URL = process.env.PRIZE_NOTIFY_API_URL;
@@ -20,21 +19,35 @@ const pad6 = (n: number) => n.toString().padStart(6, "0");
 
 export async function POST(_req: NextRequest) {
   const draw = await getCurrentDraw();
-  if (!draw) return NextResponse.json({ error: "No current draw" }, { status: 404 });
+  if (!draw) {
+    return NextResponse.json({ error: "No current draw" }, { status: 404 });
+  }
 
   if (!["SCHEDULED", "LOCKED"].includes(draw.status)) {
-    return NextResponse.json({ error: `Invalid status: ${draw.status}` }, { status: 400 });
+    return NextResponse.json(
+      { error: `Invalid status: ${draw.status}` },
+      { status: 400 }
+    );
   }
 
   // กัน run ซ้ำ
-  const exist = await prisma.drawResult.findFirst({ where: { draw_id: draw.id } });
-  if (exist) return NextResponse.json({ error: "Results already exist" }, { status: 409 });
+  const exist = await prisma.drawResult.findFirst({
+    where: { draw_id: draw.id },
+  });
+  if (exist) {
+    return NextResponse.json(
+      { error: "Results already exist" },
+      { status: 409 }
+    );
+  }
 
   // seed tiers ถ้ายังไม่มี
   if (!draw.prizeTiers || draw.prizeTiers.length === 0) {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: { prizeTier: { create: (arg0: { data: { tier_name: string; prize_amount: number; winners_count: number; draw_id: any; }; }) => any; }; }) => {
       for (const t of DEFAULT_TIERS) {
-        await tx.prizeTier.create({ data: { draw_id: draw.id, ...t } });
+        await tx.prizeTier.create({
+          data: { draw_id: draw.id, ...t },
+        });
       }
     });
   }
@@ -45,14 +58,17 @@ export async function POST(_req: NextRequest) {
   });
 
   // set DRAWING
-  await prisma.draw.update({ where: { id: draw.id }, data: { status: DrawStatus.DRAWING } });
+  await prisma.draw.update({
+    where: { id: draw.id },
+    data: { status: "DRAWING" },
+  });
 
   // สุ่มเลขไม่ซ้ำ
   const used = new Set<string>();
   const picks: {
     prize_tier_id: number;
     ticket_number: string;
-    prize_amount: Prisma.Decimal;
+    prize_amount: number; // <-- ใช้ number แทน Decimal
     tier_name?: string;
   }[] = [];
 
@@ -64,39 +80,39 @@ export async function POST(_req: NextRequest) {
         ticket = pad6(n - 1);         // 000000..099999
       } while (used.has(ticket));
       used.add(ticket);
+
       picks.push({
         prize_tier_id: tier.id,
         ticket_number: ticket,
-        prize_amount: tier.prize_amount as Prisma.Decimal,
+        prize_amount: Number(tier.prize_amount), // แปลงเป็น number ครั้งเดียว
         tier_name: tier.tier_name,
       });
     }
   }
 
   // บันทึกผล
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: { drawResult: { create: (arg0: { data: { draw_id: any; prize_tier_id: number; ticket_number: string; prize_amount: number; }; }) => any; }; }) => {
     for (const p of picks) {
       await tx.drawResult.create({
         data: {
           draw_id: draw.id,
           prize_tier_id: p.prize_tier_id,
           ticket_number: p.ticket_number,
-          prize_amount: p.prize_amount,
+          prize_amount: p.prize_amount, // Prisma จะ cast number → Decimal เอง
         },
       });
     }
 
-    // อัปเดตสถานะเป็น PUBLISHED หลังจับเสร็จ
+    // ถ้าจะอัปเดตสถานะเป็น PUBLISHED หลังจับเสร็จ ให้ใช้ enum ใน schema:
     // await tx.draw.update({
     //   where: { id: draw.id },
-    //   data: { status: DrawStatus.PUBLISHED },
+    //   data: { status: "PUBLISHED" },
     // });
   });
 
   // เรียก API Gateway → Lambda → SNS (แจ้งผลออกรางวัล)
   if (PRIZE_NOTIFY_API_URL) {
     try {
-      // ส่งข้อมูลพอประมาณไปให้ Lambda ประกอบข้อความ (หรือจะส่งแค่ drawId ก็ได้)
       const notifyBody = {
         drawId: draw.id,
         drawCode: draw.draw_code,
@@ -104,7 +120,7 @@ export async function POST(_req: NextRequest) {
         winners: picks.map((p) => ({
           tier_name: p.tier_name,
           ticket_number: p.ticket_number,
-          prize_amount: p.prize_amount.toNumber(), // แปลงเป็น number เพื่อส่งไป JSON
+          prize_amount: p.prize_amount, // number พร้อมส่งไป JSON
         })),
       };
 

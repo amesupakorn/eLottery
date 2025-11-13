@@ -26,7 +26,7 @@ export async function GET(
       },
     });
 
-    const totalValue = tickets.reduce((sum, t) => {
+    const totalValue = tickets.reduce((sum: number, t: { total_price: any; }) => {
       return sum + Number(t.total_price || 0);
     }, 0);
 
